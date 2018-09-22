@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<X3D profile='Immersive'>
+<Scene>
+<Background groundAngle='1.309, 1.571' groundColor='0.1 0.1 0, 0.4 0.25 0.2, 0.6 0.6 0.6' skyAngle='1.309, 1.571' skyColor='0 0.2 0.7, 0 0.5 1, 1 1 1'/>
+<!--Ilk once sahneye helikopter ve viewpoint ekleyelim-->
+<ExternProtoDeclare name='HelixProto' url=' "Helikopter.x3d" "x3d/Helikopter.x3d" "https://tekrei.gitlab.io/other/x3d/Helikopter.x3d" '/>
+<Transform DEF='HelixTransform' scale='0.5 0.5 0.5'>
+	<DirectionalLight direction='0 0 1'/>
+	<ProtoInstance name='HelixProto' containerField='children'/>
+	<Viewpoint DEF='HelikopterArkasi'
+     		description="HelikopterArkasi"
+		jump='true'
+		fieldOfView='0.785'
+		position='.074 7 -21.052'
+		orientation='0 1 0 3.142'
+	/>
+</Transform>
+<!--Asagidaki rotalar helikopteri uygun yolda ilerletmek icin yaratilmistir-->
+<TimeSensor DEF='DolasimZamanlayici'
+ cycleInterval='10.000'
+ loop='false'
+ startTime='.000'
+/>
+<PositionInterpolator DEF='DolasimRotasi'
+ key='0 .5 1'
+ keyValue='0 0 0 50 0 0 0 0 0'
+/>
+<ROUTE fromNode='DolasimZamanlayici' fromField='fraction_changed' 
+	   toNode='DolasimRotasi' toField='set_fraction'/>
+<ROUTE fromNode='DolasimRotasi' fromField='value_changed' 
+	   toNode='HelixTransform' toField='set_translation'/>
+<!-- Diger Izleme Noktalari-->
+<Viewpoint DEF='BaslangicNoktasi'
+     		description="Helikopterin Ilk Bulundugu Nokta"
+		jump='true'
+		fieldOfView='0.785'
+		position='.074 7 -21.052'
+		orientation='0 1 0 3.142'
+	/>
+</Scene>
+</X3D>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>tr.edu.ege</groupId>
+    <artifactId>HeDoS</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <scm>
+        <connection>scm:git:git@github.com:tekrei/hedos.git</connection>
+        <developerConnection>scm:git:git@github.com:tekrei/hedos.git</developerConnection>
+        <url>git@github.com:tekrei/hedos.git</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>GNU General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>tekrei</id>
+            <name>T. E. Kalayci</name>
+        </developer>
+    </developers>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>org.jogamp.jogl</groupId>
+            <artifactId>jogl-all-main</artifactId>
+            <version>2.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jogamp.joal</groupId>
+            <artifactId>joal</artifactId>
+            <version>2.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jogamp.gluegen</groupId>
+            <artifactId>gluegen-rt</artifactId>
+            <version>2.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>xj3d</groupId>
+            <artifactId>xj3d</artifactId>
+            <version>2.1</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/xj3d-2.1-nps.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>xj3d</groupId>
+            <artifactId>xj3d-browser</artifactId>
+            <version>2.1.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/xj3d.browser_2.1.0-nps.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>xj3d</groupId>
+            <artifactId>xj3d-cadfilter</artifactId>
+            <version>2.1.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/xj3d.cadfilter_2.1.0-nps.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>xj3d</groupId>
+            <artifactId>xj3d-replica</artifactId>
+            <version>2.1.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/xj3d.replica_2.1.0-nps.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>xj3d</groupId>
+            <artifactId>xj3d-3rdparty</artifactId>
+            <version>2.1</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/xj3d-2.1-3rdparty-nps.jar</systemPath>
+        </dependency>
+    </dependencies>
+</project>
