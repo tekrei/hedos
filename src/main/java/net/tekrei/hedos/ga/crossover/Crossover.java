@@ -32,7 +32,7 @@ public abstract class Crossover {
 
         for (int i = 0; i < size; i++) {
             if (exists[genes[i]]) {
-                genes[i] = bringOne(exists);
+                genes[i] = bringFirst(exists);
             }
 
             exists[genes[i]] = true;
@@ -41,7 +41,7 @@ public abstract class Crossover {
         return genes;
     }
 
-    private int bringOne(boolean[] geneStatus) {
+    private int bringFirst(boolean[] geneStatus) {
         for (int i = 0; i < geneStatus.length; i++) {
             if (!geneStatus[i]) {
                 return i;
@@ -49,12 +49,5 @@ public abstract class Crossover {
         }
 
         return -1;
-    }
-
-    void print(int[] genes) {
-        for (int i1 : genes) {
-            System.out.print(i1 + " ");
-        }
-        System.out.println();
     }
 }

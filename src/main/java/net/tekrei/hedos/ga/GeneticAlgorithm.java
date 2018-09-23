@@ -7,14 +7,31 @@ import net.tekrei.hedos.ga.crossover.Crossover;
 import net.tekrei.hedos.ga.mutation.Mutation;
 import net.tekrei.hedos.ga.utilities.Chromosome;
 import net.tekrei.hedos.ga.utilities.GAParameters;
-import net.tekrei.hedos.ga.utilities.QubbleSortAlgorithm;
+import net.tekrei.hedos.ga.utilities.Point;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Random;
+import java.util.stream.IntStream;
 
 public class GeneticAlgorithm {
+    private static ArrayList<Point> TARGETS;
     private Chromosome[] population;
+    private Chromosome best;
 
-    private Chromosome elite;
+    public static float calculateCost(int[] genes) {
+        float cost = 0.0f;
 
-    public Chromosome isle() {
+        for (int i = 1; i < genes.length; i++) {
+            cost += TARGETS.get(genes[i]).distance(TARGETS.get(genes[i - 1]));
+        }
+
+        return cost;
+    }
+
+    public Chromosome run(ArrayList<Point> _targets) {
+        TARGETS = _targets;
+        best = null;
         initPopulation();
 
         int generation = 0;
@@ -22,76 +39,64 @@ public class GeneticAlgorithm {
         Mutation mutator = GAParameters.getMutation();
 
         while (generation < GAParameters.getInstance().getNesilSayisi()) {
-            long bas = System.currentTimeMillis();
+            //long bas = System.currentTimeMillis();
             generation++;
-
-            sort();
-
-            if (GAParameters.getInstance().isElitism()) {
-                elitism();
-            }
-
             if (caprazlayici != null) {
                 population = caprazlayici.crossover(population);
             }
-
             if (mutator != null) {
                 population = mutator.mutate(population);
             }
-
-            System.out.println(generation + "\t" + enIyi().toString() + "\t"
-                    + (System.currentTimeMillis() - bas));
+            Arrays.sort(population);
+            elitism();
+            //System.out.println(generation + "\t" + best.toString() + "\t" + (System.currentTimeMillis() - bas));
         }
-
-        return enIyi();
+        return best;
     }
 
-    private Chromosome enIyi() {
-        int[] bestGenes = bestChromosome(population).getGenes();
-        if (elite != null && elite.getCost() < Chromosome.calculateCost(bestGenes)) {
-            bestGenes = elite.getGenes();
+    private int[] randomGenes() {
+        int[] genes = new int[TARGETS.size()];
+
+        for (int i = 0; i < genes.length; i++) {
+            genes[i] = -1;
         }
-        Chromosome k = new Chromosome();
-        k.setGenes(bestGenes);
-        return k;
+
+        Random generator = new Random();
+
+        for (int i = 0; i < genes.length; i++) {
+            int uretilen = generator.nextInt(genes.length);
+
+            while (contains(genes, uretilen)) {
+                uretilen = generator.nextInt(genes.length);
+            }
+
+            genes[i] = uretilen;
+        }
+        return genes;
+    }
+
+    private boolean contains(int[] array, int gene) {
+        return IntStream.of(array).anyMatch(x -> x == gene);
     }
 
     private void elitism() {
-        if (elite != null) {
-            population[population.length - 1].setGenes(elite.getGenes());
-        } else {
-            elite = new Chromosome();
-            elite.setGenes(population[0].getGenes());
+        if (best == null) {
+            best = new Chromosome(population[0].getGenes(), population[0].getCost());
+        } else if (GAParameters.getInstance().isElitism()) {
+            population[population.length - 1].setGenes(best.getGenes(), best.getCost());
         }
 
-        sort();
-
-        if (elite.getCost() > population[0].getCost()) {
-            elite.setGenes(population[0].getGenes());
+        if (best.getCost() > population[0].getCost()) {
+            best.setGenes(population[0].getGenes().clone(), population[0].getCost());
         }
-    }
-
-    private void sort() {
-        population = QubbleSortAlgorithm.getInstance().sort(population);
     }
 
     private void initPopulation() {
         population = new Chromosome[GAParameters.getInstance().getToplumBuyuklugu()];
 
         for (int i = 0; i < population.length; i++) {
-            population[i] = new Chromosome();
+            int[] genes = randomGenes();
+            population[i] = new Chromosome(genes, calculateCost(genes));
         }
-    }
-
-    private Chromosome bestChromosome(Chromosome[] toplum) {
-        int bestIndex = 0;
-
-        for (int i = 0; i < toplum.length; i++) {
-            if (toplum[i].getCost() < toplum[bestIndex].getCost()) {
-                bestIndex = i;
-            }
-        }
-
-        return toplum[bestIndex];
     }
 }

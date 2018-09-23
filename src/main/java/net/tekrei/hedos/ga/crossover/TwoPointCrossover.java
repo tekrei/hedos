@@ -1,5 +1,6 @@
 package net.tekrei.hedos.ga.crossover;
 
+import net.tekrei.hedos.ga.GeneticAlgorithm;
 import net.tekrei.hedos.ga.utilities.Chromosome;
 
 public class TwoPointCrossover extends Crossover {
@@ -14,16 +15,15 @@ public class TwoPointCrossover extends Crossover {
 
         int[] secondParentGenes = secondParent.getGenes();
 
-        int[] child = matchGenes(firstParentGenes, secondParentGenes, cp1,
-                cp2);
+        int[] child = matchGenes(firstParentGenes, secondParentGenes, cp1, cp2);
         child = fixGenes(child);
 
-        firstParent.setGenes(child);
+        firstParent.setGenes(child, GeneticAlgorithm.calculateCost(child));
 
         child = matchGenes(secondParentGenes, firstParentGenes, cp1, cp2);
         child = fixGenes(child);
 
-        secondParent.setGenes(child);
+        secondParent.setGenes(child, GeneticAlgorithm.calculateCost(child));
     }
 
     private int[] matchGenes(int[] p1, int[] p2, int c1, int c2) {

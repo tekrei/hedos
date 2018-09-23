@@ -1,5 +1,6 @@
 package net.tekrei.hedos.ga.crossover;
 
+import net.tekrei.hedos.ga.GeneticAlgorithm;
 import net.tekrei.hedos.ga.utilities.Chromosome;
 
 public class SinglePointCrossover extends Crossover {
@@ -11,18 +12,11 @@ public class SinglePointCrossover extends Crossover {
         int[] secondParentGenes = secondParent.getGenes();
 
         int[] child = matchGenes(firstParentGenes, secondParentGenes, cutPoint);
-        System.out.print("child(0):");
-        print(child);
         child = fixGenes(child);
-        System.out.print("child(1):");
-        print(child);
-
-        firstParent.setGenes(child);
-
+        firstParent.setGenes(child, GeneticAlgorithm.calculateCost(child));
         child = matchGenes(secondParentGenes, firstParentGenes, cutPoint);
         child = fixGenes(child);
-
-        secondParent.setGenes(child);
+        secondParent.setGenes(child, GeneticAlgorithm.calculateCost(child));
     }
 
     private int[] matchGenes(int[] firstParent, int[] secondParent, int cutPoint) {

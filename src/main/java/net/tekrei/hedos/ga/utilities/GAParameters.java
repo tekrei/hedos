@@ -11,7 +11,6 @@ import net.tekrei.hedos.ga.mutation.RandomMutation;
 import net.tekrei.hedos.utility.Messages;
 import net.tekrei.hedos.utility.Settings;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -30,11 +29,10 @@ public class GAParameters {
         mutations.put(Messages.Mutasyonlar.sadeceGelistirenSistematik, new OnlyImprovingSystematicMutation());
     }
 
-    private final ArrayList<Point> hedef;
     private final Random generator;
     private int nesilSayisi;
     private int toplumBuyuklugu;
-    private float mutasyonOlasiligi;
+    private float mutationProbability;
     private boolean elitism;
     private float caprazlamaOlasiligi;
     private String mutasyonTipi;
@@ -46,14 +44,12 @@ public class GAParameters {
                 "nesilSayisi"));
         this.toplumBuyuklugu = Integer.parseInt(Settings.getInstance()
                 .getString("toplumBuyuklugu"));
-        this.mutasyonOlasiligi = Float.parseFloat(Settings.getInstance()
+        this.mutationProbability = Float.parseFloat(Settings.getInstance()
                 .getString("mutasyonOlasiligi"));
         this.elitism = Boolean.parseBoolean(Settings.getInstance().getString(
                 "elitism"));
         this.caprazlamaOlasiligi = Float.parseFloat(Settings.getInstance()
                 .getString("caprazlamaOlasiligi"));
-        this.hedef = new ArrayList<>();
-
         generator = new Random();
     }
 
@@ -72,29 +68,6 @@ public class GAParameters {
         return instance;
     }
 
-    public void addTarget(Point _nokta) {
-        hedef.add(_nokta);
-    }
-
-    public boolean deleteTarget(Point _nokta) {
-        return hedef.remove(_nokta);
-    }
-
-    public Point getHedef(int i) {
-        return hedef.get(i);
-    }
-
-    public int getHedefSayi() {
-        return hedef.size();
-    }
-
-    /**
-     * iki hedef arasindaki uzakligi bulup donduren metod
-     */
-    float getDistance(int i, int j) {
-        return hedef.get(i).distance(hedef.get(j));
-    }
-
     public boolean isElitism() {
         return elitism;
     }
@@ -103,12 +76,12 @@ public class GAParameters {
         this.elitism = _elitism;
     }
 
-    public float getMutasyonOlasiligi() {
-        return mutasyonOlasiligi;
+    public float getMutationProbability() {
+        return mutationProbability;
     }
 
-    public void setMutasyonOlasiligi(float _mutasyonOlasiligi) {
-        this.mutasyonOlasiligi = _mutasyonOlasiligi;
+    public void setMutationProbability(float _mutasyonOlasiligi) {
+        this.mutationProbability = _mutasyonOlasiligi;
     }
 
     public int getNesilSayisi() {
@@ -156,7 +129,7 @@ public class GAParameters {
     }
 
     public boolean mutasyon() {
-        return nextFloat() < mutasyonOlasiligi;
+        return nextFloat() < mutationProbability;
     }
 
     public float nextFloat() {

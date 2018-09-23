@@ -1,5 +1,6 @@
 package net.tekrei.hedos.ga.mutation;
 
+import net.tekrei.hedos.ga.GeneticAlgorithm;
 import net.tekrei.hedos.ga.utilities.Chromosome;
 import net.tekrei.hedos.ga.utilities.GAParameters;
 
@@ -18,7 +19,7 @@ public class OnlyImprovingRandomMutation extends Mutation {
         int[] tempDeger = degisecek.getGenes().clone();
 
         if (GAParameters.getInstance().nextFloat() < GAParameters
-                .getInstance().getMutasyonOlasiligi()) {
+                .getInstance().getMutationProbability()) {
             int bir = GAParameters.getInstance().nextInt(tempDeger.length);
             int iki = GAParameters.getInstance().nextInt(tempDeger.length);
 
@@ -29,8 +30,8 @@ public class OnlyImprovingRandomMutation extends Mutation {
         }
         // Eger mutasyon sonucu olusan kromozom oncekinden daha uygun ise
         // degistirecegiz
-        if (Chromosome.calculateCost(tempDeger) < degisecek.getCost()) {
-            degisecek.setGenes(tempDeger);
+        if (GeneticAlgorithm.calculateCost(tempDeger) < degisecek.getCost()) {
+            degisecek.setGenes(tempDeger, GeneticAlgorithm.calculateCost(tempDeger));
         }
     }
 }

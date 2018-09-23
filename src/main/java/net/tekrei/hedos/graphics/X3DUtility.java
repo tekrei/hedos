@@ -3,7 +3,6 @@
  */
 package net.tekrei.hedos.graphics;
 
-import net.tekrei.hedos.ga.utilities.GAParameters;
 import net.tekrei.hedos.ga.utilities.Point;
 import net.tekrei.hedos.utility.Settings;
 import org.web3d.x3d.sai.*;
@@ -19,6 +18,7 @@ import org.xj3d.ui.awt.browser.ogl.X3DBrowserJPanel;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 public class X3DUtility {
 
@@ -55,12 +55,15 @@ public class X3DUtility {
     }
 
     public static void addLineSet(float[] coords, int[] indexes) {
+        deleteNode("P_SOLUTION");
         Coordinate coord = (Coordinate) scene.createNode("Coordinate");
         coord.setPoint(coords);
         IndexedLineSet ils = (IndexedLineSet) scene.createNode("IndexedLineSet");
         ils.setCoord(coord);
         ils.setCoordIndex(indexes);
-        scene.addRootNode(createShapeWithColor(lineColor, ils));
+        X3DShapeNode ilsShape = createShapeWithColor(lineColor, ils);
+        scene.updateNamedNode("P_SOLUTION", ilsShape);
+        scene.addRootNode(ilsShape);
     }
 
     public static void createTargetAt(Point nokta) {
@@ -73,13 +76,17 @@ public class X3DUtility {
     }
 
     public static void deleteNode(String isim) {
-        scene.removeRootNode(scene.getNamedNode(isim));
+        try {
+            scene.removeRootNode(scene.getNamedNode(isim));
+        } catch (InvalidNodeException e) {
+            System.err.println(isim + " not found:" + e.getMessage());
+        }
     }
 
-    public static void setRoute() {
+    public static void setRoute(ArrayList<Point> targets) {
         SAIPositionInterpolator interpolator = (SAIPositionInterpolator) scene.getNamedNode("DolasimRotasi");
 
-        int hedefAdet = GAParameters.getInstance().getHedefSayi();
+        int hedefAdet = targets.size();
 
         float artis = (float) 1 / (hedefAdet + 1);
         float baslangic = 0f;
@@ -104,8 +111,7 @@ public class X3DUtility {
             try {
                 keyArray[i] = baslangic;
 
-                Point hedefNoktasi = GAParameters.getInstance().getHedef(
-                        i - 1);
+                Point hedefNoktasi = targets.get(i - 1);
                 keyValueArray[++valueIndex] = hedefNoktasi.getX();
                 keyValueArray[++valueIndex] = hedefNoktasi.getY();
                 keyValueArray[++valueIndex] = hedefNoktasi.getZ();
@@ -114,7 +120,6 @@ public class X3DUtility {
                 System.err.println(i + ":" + e.toString());
             }
         }
-
         keyArray[hedefAdet + 1] = 1.0f;
         keyValueArray[++valueIndex] = baslangicNoktasiKoordinatlari[0];
         keyValueArray[++valueIndex] = baslangicNoktasiKoordinatlari[1];
@@ -128,9 +133,9 @@ public class X3DUtility {
         x3dComp.shutdown();
     }
 
-    public static void setTimer() {
+    public static void setTimer(int targetCount) {
         TimeSensor timeInterpolator = (TimeSensor) scene.getNamedNode("DolasimZamanlayici");
-        timeInterpolator.setCycleInterval((float) (GAParameters.getInstance().getHedefSayi() * 0.5));
+        timeInterpolator.setCycleInterval((float) (targetCount * 0.5));
         timeInterpolator.setStartTime(System.currentTimeMillis() * 0.001);
     }
 }

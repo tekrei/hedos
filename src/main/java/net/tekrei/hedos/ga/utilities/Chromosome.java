@@ -1,86 +1,45 @@
 package net.tekrei.hedos.ga.utilities;
 
-import java.util.Random;
-import java.util.stream.IntStream;
+import java.util.Arrays;
 
-public class Chromosome {
+public class Chromosome implements Comparable<Chromosome> {
     private int[] genes;
     private float cost;
 
-    public Chromosome() {
-        initialize(GAParameters.getInstance().getHedefSayi());
-        randomize();
-        calculateCost();
-    }
-
-    public static float calculateCost(int[] genes) {
-        float cost = 0.0f;
-
-        for (int i = 1; i < genes.length; i++) {
-            cost += GAParameters.getInstance().getDistance(genes[i],
-                    genes[i - 1]);
-        }
-
-        return cost;
-    }
-
-    private void initialize(int size) {
-        genes = new int[size];
-        for (int i = 0; i < genes.length; i++) {
-            genes[i] = -1;
-        }
-
+    public Chromosome(int[] _genes, float _cost) {
+        genes = _genes;
+        cost = _cost;
     }
 
     public int[] getGenes() {
         return genes;
     }
 
-    public void setGenes(int[] genes) {
-        this.genes = genes;
-        calculateCost();
-    }
-
-    private boolean contains(int[] array, int gene) {
-        return IntStream.of(array).anyMatch(x -> x == gene);
-    }
-
-    private void randomize() {
-        Random generator = new Random();
-
-        for (int i = 0; i < genes.length; i++) {
-            int uretilen = generator.nextInt(genes.length);
-
-            while (contains(genes, uretilen)) {
-                uretilen = generator.nextInt(genes.length);
-            }
-
-            genes[i] = uretilen;
-        }
+    public void setGenes(int[] _genes, float _cost) {
+        this.genes = _genes;
+        this.cost = _cost;
     }
 
     public float getCost() {
         return cost;
     }
 
-    private void calculateCost() {
-        cost = 0f;
-
-        for (int i = 1; i < genes.length; i++) {
-            cost += GAParameters.getInstance().getDistance(genes[i],
-                    genes[i - 1]);
-        }
-
-    }
-
     @Override
     public String toString() {
-        return String.format("%s", getCost());
+        return String.format("[%s] %s", getCost(), Arrays.toString(genes));
     }
 
     public void swap(int first, int second) {
         int temp = genes[first];
         genes[first] = genes[second];
         genes[second] = temp;
+    }
+
+    @Override
+    public int compareTo(Chromosome o) {
+        if (o != null) {
+            return (int) (getCost() - o.getCost());
+        }
+        return -1;
     }
 }

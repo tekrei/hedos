@@ -10,15 +10,12 @@ import net.tekrei.hedos.utility.Messages;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 
 public class PropertiesPanel extends JPanel {
-    /**
-     *
-     */
-    private static final long serialVersionUID = 1L;
 
+    private final ArrayList<Point> targets = new ArrayList<>();
     private final HedosFrame hedosFrame;
-    private final JTextArea txtDuyuru = null;
     private JTextField nesilSayisi = null;
     private JTextField toplumBuyuklugu = null;
     private JTextField mutasyonOlasilik = null;
@@ -30,12 +27,11 @@ public class PropertiesPanel extends JPanel {
     private JTextField hedefY = null;
     private JTextField hedefZ = null;
     private JButton btnHedefEkle = null;
-    private JComboBox<Point> hedefler = null;
+    private JComboBox<Point> cmbTargets = null;
     private JButton btnSil = null;
     private JButton btnDolas = null;
     private JButton btnHesapla = null;
     private JButton btnCokluHesapla = null;
-
     public PropertiesPanel(HedosFrame _hedosFrame) {
         super();
         hedosFrame = _hedosFrame;
@@ -158,12 +154,6 @@ public class PropertiesPanel extends JPanel {
         this.setSize(uzunluk, yKonum + 350);
     }
 
-    public void duyuruEkle(String duyuru) {
-        if (txtDuyuru != null) {
-            txtDuyuru.setText(duyuru + "\n" + txtDuyuru.getText());
-        }
-    }
-
     private JTextField getTxtNesilSayisi(Rectangle rect) {
         if (nesilSayisi == null) {
             nesilSayisi = new JTextField();
@@ -229,12 +219,12 @@ public class PropertiesPanel extends JPanel {
     }
 
     private JComboBox getCmbHedefler(Rectangle bounds) {
-        if (hedefler == null) {
-            hedefler = new JComboBox<>();
-            hedefler.setBounds(bounds);
+        if (cmbTargets == null) {
+            cmbTargets = new JComboBox<>(new ArrayListComboBoxModel());
+            cmbTargets.setBounds(bounds);
         }
 
-        return hedefler;
+        return cmbTargets;
     }
 
     private JTextField getTxtHedefX(Rectangle bounds) {
@@ -290,18 +280,16 @@ public class PropertiesPanel extends JPanel {
             btnSil.setBounds(bounds);
             btnSil.setText(Messages.getInstance().getString("SolPanel.Sil"));
             btnSil.setMnemonic('s');
-            btnSil.addActionListener(e -> hedefSil());
+            btnSil.addActionListener(e -> deleteTarget());
         }
 
         return btnSil;
     }
 
-    private void hedefSil() {
-        Point silinecek = (Point) hedefler.getSelectedItem();
-
-        if (hedosFrame.deleteTarget(silinecek)) {
-            hedefler.removeItem(silinecek);
-        }
+    private void deleteTarget() {
+        Point silinecek = (Point) cmbTargets.getSelectedItem();
+        hedosFrame.deleteTarget(silinecek);
+        targets.remove(silinecek);
     }
 
     private JButton getBtnDolas(Rectangle bounds) {
@@ -344,13 +332,13 @@ public class PropertiesPanel extends JPanel {
     }
 
     public void addTarget(Point nokta) {
-        hedefler.addItem(nokta);
+        targets.add(nokta);
     }
 
     public void updateGPParameter() {
         GAParameters.getInstance().setCaprazlamaOlasiligi(
                 Float.parseFloat(caprazlamaOlasilik.getText()));
-        GAParameters.getInstance().setMutasyonOlasiligi(
+        GAParameters.getInstance().setMutationProbability(
                 Float.parseFloat(mutasyonOlasilik.getText()));
         GAParameters.getInstance().setToplumBuyuklugu(
                 Integer.parseInt(toplumBuyuklugu.getText()));
@@ -369,13 +357,45 @@ public class PropertiesPanel extends JPanel {
         this.toplumBuyuklugu.setText("" +
                 GAParameters.getInstance().getToplumBuyuklugu());
         this.mutasyonOlasilik.setText("" +
-                GAParameters.getInstance().getMutasyonOlasiligi());
+                GAParameters.getInstance().getMutationProbability());
         this.caprazlamaOlasilik.setText("" +
                 GAParameters.getInstance().getCaprazlamaOlasiligi());
         this.updateUI();
     }
 
+    public int getTargetCount() {
+        return targets.size();
+    }
+
     private void dolasTiklandi() {
         hedosFrame.travel();
+    }
+
+    public Point getTarget(int i) {
+        return targets.get(i);
+    }
+
+    public ArrayList<Point> getTargets() {
+        return targets;
+    }
+
+    class ArrayListComboBoxModel extends AbstractListModel<Point> implements ComboBoxModel<Point> {
+        private Point selectedItem;
+
+        public Point getSelectedItem() {
+            return selectedItem;
+        }
+
+        public void setSelectedItem(Object newValue) {
+            selectedItem = (Point) newValue;
+        }
+
+        public int getSize() {
+            return targets.size();
+        }
+
+        public Point getElementAt(int i) {
+            return targets.get(i);
+        }
     }
 }

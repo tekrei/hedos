@@ -5,7 +5,6 @@ package net.tekrei.hedos;
 
 import net.tekrei.hedos.ga.GeneticAlgorithm;
 import net.tekrei.hedos.ga.utilities.Chromosome;
-import net.tekrei.hedos.ga.utilities.GAParameters;
 import net.tekrei.hedos.ga.utilities.Point;
 import net.tekrei.hedos.graphics.X3DUtility;
 import net.tekrei.hedos.ui.PropertiesPanel;
@@ -19,9 +18,7 @@ import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 
 public class HedosFrame extends JFrame {
-    private static final long serialVersionUID = 1L;
-
-    private PropertiesPanel pnlSol;
+    private PropertiesPanel pnlProperties;
 
     private JMenuBar menu;
 
@@ -53,8 +50,8 @@ public class HedosFrame extends JFrame {
         splitPane.setDividerLocation(200);
         splitPane.setDividerSize(0);
 
-        pnlSol = new PropertiesPanel(this);
-        splitPane.setLeftComponent(pnlSol);
+        pnlProperties = new PropertiesPanel(this);
+        splitPane.setLeftComponent(pnlProperties);
         splitPane.setRightComponent(X3DUtility.createBrowser());
 
         this.add(splitPane, BorderLayout.CENTER);
@@ -69,31 +66,24 @@ public class HedosFrame extends JFrame {
         if (menu == null) {
             menu = new JMenuBar();
 
-            JMenu mnDosya = new JMenu(Messages.getInstance().getString(
-                    "HedosFrame.Dosya"));
-
-            JMenuItem mnItem = new JMenuItem(Messages.getInstance().getString(
-                    "HedosFrame.AyarlariKaydet"));
+            JMenu mnDosya = new JMenu(Messages.getInstance().getString("HedosFrame.Dosya"));
+            JMenuItem mnItem = new JMenuItem(Messages.getInstance().getString("HedosFrame.AyarlariKaydet"));
             mnDosya.add(mnItem);
 
-            mnItem = new JMenuItem(Messages.getInstance().getString(
-                    "HedosFrame.AyarlariYukle"));
+            mnItem = new JMenuItem(Messages.getInstance().getString("HedosFrame.AyarlariYukle"));
             mnItem.addActionListener(e -> {
                 // TODO loadFile();
             });
             mnDosya.add(mnItem);
 
-            mnItem = new JMenuItem(Messages.getInstance().getString(
-                    "HedosFrame.AyarlariFarkliKaydet"));
+            mnItem = new JMenuItem(Messages.getInstance().getString("HedosFrame.AyarlariFarkliKaydet"));
             mnDosya.add(mnItem);
 
-            mnItem = new JMenuItem(Messages.getInstance().getString(
-                    "HedosFrame.CokluTest"));
+            mnItem = new JMenuItem(Messages.getInstance().getString("HedosFrame.CokluTest"));
             mnItem.addActionListener(e -> multipleCalculation());
             mnDosya.add(mnItem);
 
-            mnItem = new JMenuItem(Messages.getInstance().getString(
-                    "HedosFrame.Cikis"));
+            mnItem = new JMenuItem(Messages.getInstance().getString("HedosFrame.Cikis"));
             mnItem.addActionListener(e -> System.exit(0));
             mnDosya.add(mnItem);
 
@@ -110,52 +100,35 @@ public class HedosFrame extends JFrame {
             addTarget(nokta);
         }
 
-        pnlSol.updatePanel();
+        pnlProperties.updatePanel();
     }
 
     private void drawPath(int[] path) {
-
         float[] coordinates = new float[path.length * 3];
         int[] index = new int[path.length];
         for (int i = 0; i < path.length; i++) {
-            coordinates[i * 3] = GAParameters.getInstance().getHedef(i).x;
-            coordinates[i * 3 + 1] = GAParameters.getInstance().getHedef(i).y;
-            coordinates[i * 3 + 2] = GAParameters.getInstance().getHedef(i).z;
+            Point target = pnlProperties.getTarget(path[i]);
+            coordinates[i * 3] = target.x;
+            coordinates[i * 3 + 1] = target.y;
+            coordinates[i * 3 + 2] = target.z;
             index[i] = i;
         }
-
         X3DUtility.addLineSet(coordinates, index);
     }
 
     public void addTarget(Point target) {
         X3DUtility.createTargetAt(target);
-        GAParameters.getInstance().addTarget(target);
-        pnlSol.addTarget(target);
+        pnlProperties.addTarget(target);
     }
 
-    public boolean deleteTarget(Point target) {
+    public void deleteTarget(Point target) {
         X3DUtility.deleteNode(target.getName());
-        return GAParameters.getInstance().deleteTarget(target);
     }
 
     public void calculate() {
-        long hesaplamaBaslangic = System.currentTimeMillis();
-        pnlSol.updateGPParameter();
-
+        pnlProperties.updateGPParameter();
         try {
-            GeneticAlgorithm isleyici = new GeneticAlgorithm();
-            Chromosome enIyi = isleyici.isle();
-            String duyuru = GAParameters.getInstance().getHedefSayi()
-                    + "\t" + GAParameters.getInstance().getMutasyonTipi()
-                    + "\t" + GAParameters.getInstance().getCaprazlamaTipi()
-                    + "\t"
-                    + GAParameters.getInstance().getMutasyonOlasiligi()
-                    + "\t"
-                    + GAParameters.getInstance().getCaprazlamaOlasiligi()
-                    + "\t" + enIyi.toString() + "\t"
-                    + (System.currentTimeMillis() - hesaplamaBaslangic);
-            pnlSol.duyuruEkle(duyuru);
-            System.out.println(duyuru);
+            Chromosome enIyi = new GeneticAlgorithm().run(pnlProperties.getTargets());
             drawPath(enIyi.getGenes());
         } catch (Exception e) {
             e.printStackTrace();
@@ -163,17 +136,22 @@ public class HedosFrame extends JFrame {
     }
 
     public void travel() {
-        X3DUtility.setRoute();
-        X3DUtility.setTimer();
+        X3DUtility.setRoute(pnlProperties.getTargets());
+        X3DUtility.setTimer(pnlProperties.getTargetCount());
     }
 
     public void multipleCalculation() {
         String deger = JOptionPane.showInputDialog(null, Messages.getInstance()
-                .getString("HedosFrame.CokluTest"), "100");
+                .getString("HedosFrame.CokluTest"), "10");
         if (deger != null && !deger.equals("")) {
             int denemeSayisi = Integer.parseInt(deger);
             for (int i = 0; i < denemeSayisi; i++) {
                 calculate();
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException e) {
+                    System.err.println(e.getMessage());
+                }
             }
         }
     }

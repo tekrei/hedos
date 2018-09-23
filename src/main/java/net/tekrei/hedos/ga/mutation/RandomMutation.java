@@ -9,7 +9,7 @@ public class RandomMutation extends Mutation {
         int geneCount = chromosome.getGenes().length;
 
         if (GAParameters.getInstance().nextFloat() < GAParameters
-                .getInstance().getMutasyonOlasiligi()) {
+                .getInstance().getMutationProbability()) {
             int first = GAParameters.getInstance().nextInt(geneCount);
             int second = GAParameters.getInstance().nextInt(geneCount);
 
