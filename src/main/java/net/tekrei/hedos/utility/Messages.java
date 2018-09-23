@@ -1,6 +1,3 @@
-/*
- * tekrei tarafindan Apr 9, 2006 tarihinde yaratilmistir.
- */
 package net.tekrei.hedos.utility;
 
 import java.lang.reflect.Field;

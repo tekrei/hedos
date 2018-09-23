@@ -1,4 +1,4 @@
-package net.tekrei.hedos.ga.utilities;
+package net.tekrei.hedos.ga.data;
 
 import net.tekrei.hedos.ga.crossover.Crossover;
 import net.tekrei.hedos.ga.crossover.SinglePointCrossover;

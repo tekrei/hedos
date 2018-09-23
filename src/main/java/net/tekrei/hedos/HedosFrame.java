@@ -1,11 +1,8 @@
-/*
- * tekrei tarafindan Jan 20, 2006 tarihinde yaratilmistir.
- */
 package net.tekrei.hedos;
 
 import net.tekrei.hedos.ga.GeneticAlgorithm;
-import net.tekrei.hedos.ga.utilities.Chromosome;
-import net.tekrei.hedos.ga.utilities.Point;
+import net.tekrei.hedos.ga.data.Chromosome;
+import net.tekrei.hedos.ga.data.Point;
 import net.tekrei.hedos.graphics.X3DUtility;
 import net.tekrei.hedos.ui.PropertiesPanel;
 import net.tekrei.hedos.utility.Messages;

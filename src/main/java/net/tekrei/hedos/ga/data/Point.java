@@ -1,7 +1,4 @@
-/*
- * tekrei tarafindan Jan 30, 2006 tarihinde yaratilmistir.
- */
-package net.tekrei.hedos.ga.utilities;
+package net.tekrei.hedos.ga.data;
 
 import javax.vecmath.Point3f;
 

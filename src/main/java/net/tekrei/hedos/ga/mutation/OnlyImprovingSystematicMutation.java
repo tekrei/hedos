@@ -1,15 +1,9 @@
 package net.tekrei.hedos.ga.mutation;
 
 import net.tekrei.hedos.ga.GeneticAlgorithm;
-import net.tekrei.hedos.ga.utilities.Chromosome;
-import net.tekrei.hedos.ga.utilities.GAParameters;
+import net.tekrei.hedos.ga.data.Chromosome;
+import net.tekrei.hedos.ga.data.GAParameters;
 
-/**
- * Bu sinifin amaci gelistiren bir mutasyon bulana kadar sistematik bir sekilde
- * mutasyon denemeleri yapmaktir.
- *
- * @author emre
- */
 public class OnlyImprovingSystematicMutation extends Mutation {
 
     @Override

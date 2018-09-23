@@ -1,9 +1,6 @@
-/*
- * tekrei tarafindan Feb 2, 2006 tarihinde yaratilmistir.
- */
 package net.tekrei.hedos.graphics;
 
-import net.tekrei.hedos.ga.utilities.Point;
+import net.tekrei.hedos.ga.data.Point;
 import net.tekrei.hedos.utility.Settings;
 import org.web3d.x3d.sai.*;
 import org.web3d.x3d.sai.grouping.Transform;

@@ -1,4 +1,4 @@
-package net.tekrei.hedos.ga.utilities;
+package net.tekrei.hedos.ga.data;
 
 import java.util.Arrays;
 

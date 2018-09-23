@@ -1,6 +1,6 @@
 package net.tekrei.hedos.utility;
 
-import net.tekrei.hedos.ga.utilities.Point;
+import net.tekrei.hedos.ga.data.Point;
 
 import java.util.ArrayList;
 import java.util.ResourceBundle;

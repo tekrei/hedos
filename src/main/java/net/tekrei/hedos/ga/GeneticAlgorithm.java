@@ -4,10 +4,10 @@
 package net.tekrei.hedos.ga;
 
 import net.tekrei.hedos.ga.crossover.Crossover;
+import net.tekrei.hedos.ga.data.Chromosome;
+import net.tekrei.hedos.ga.data.GAParameters;
+import net.tekrei.hedos.ga.data.Point;
 import net.tekrei.hedos.ga.mutation.Mutation;
-import net.tekrei.hedos.ga.utilities.Chromosome;
-import net.tekrei.hedos.ga.utilities.GAParameters;
-import net.tekrei.hedos.ga.utilities.Point;
 
 import java.util.ArrayList;
 import java.util.Arrays;

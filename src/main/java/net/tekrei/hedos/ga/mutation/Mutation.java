@@ -1,7 +1,7 @@
 package net.tekrei.hedos.ga.mutation;
 
-import net.tekrei.hedos.ga.utilities.Chromosome;
-import net.tekrei.hedos.ga.utilities.GAParameters;
+import net.tekrei.hedos.ga.data.Chromosome;
+import net.tekrei.hedos.ga.data.GAParameters;
 
 public abstract class Mutation {
     public Chromosome[] mutate(Chromosome[] toplum) {

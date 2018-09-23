@@ -1,11 +1,8 @@
-/*
- * tekrei tarafindan Feb 4, 2006 tarihinde yaratilmistir.
- */
 package net.tekrei.hedos.ui;
 
 import net.tekrei.hedos.HedosFrame;
-import net.tekrei.hedos.ga.utilities.GAParameters;
-import net.tekrei.hedos.ga.utilities.Point;
+import net.tekrei.hedos.ga.data.GAParameters;
+import net.tekrei.hedos.ga.data.Point;
 import net.tekrei.hedos.utility.Messages;
 
 import javax.swing.*;
@@ -290,6 +287,8 @@ public class PropertiesPanel extends JPanel {
         Point silinecek = (Point) cmbTargets.getSelectedItem();
         hedosFrame.deleteTarget(silinecek);
         targets.remove(silinecek);
+        cmbTargets.setSelectedIndex(0);
+        cmbTargets.updateUI();
     }
 
     private JButton getBtnDolas(Rectangle bounds) {
