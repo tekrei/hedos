@@ -10,7 +10,10 @@ Solving 3D Travelling Salesman Problem using Genetic Algorithm. Actually it is s
   * xj3d.replica_2.1.0-nps.jar
   * xj3d-2.1-3rdparty-nps.jar
   * xj3d-2.1-nps.jar
-* You can run the program now, it gives the following native library error: 
-  `SEVERE: Native code library (32 and 64 bit library) failed to load: java.lang.UnsatisfiedLinkError: no odejava in java.library.path` 
-  You can overcome this issue by using the following VM argument: `-Djava.library.path=${Xj3D_Installation_Path}/natives/Linux/x84_64/`
-  but this change creates a window closing problem. It is possibly to use without this library path.
+* You can run the program now, it gives the following native library error:
+
+  SEVERE: Native code library (32 and 64 bit library) failed to load: java.lang.UnsatisfiedLinkError: no odejava in java.library.path
+  
+You can overcome this issue by using the following VM argument: `-Djava.library.path=${Xj3D_Installation_Path}/natives/Linux/x84_64/`
+ 
+ But this change creates a window closing problem. It is possible to use without this library path.
