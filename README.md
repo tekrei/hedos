@@ -1,7 +1,7 @@
 # HeDoS
 Solving 3D Travelling Salesman Problem using Genetic Algorithm. Actually it is source code of my master thesis from 2006, but I updated it to use Maven and latest libraries. I also fixed some displaying and genetic algorithm issues.
 
-#### Xj3D installation and copying required libraries
+### Xj3D installation and copying required libraries
 * Download `Xj3D installer` from [Xj3D Download Page](https://sourceforge.net/projects/xj3d/files/installers/) 
 * Install it and copy the following JARs from `jar` inside the Xj3D installation folder
  to the `lib` folder under the project folder:
@@ -19,3 +19,7 @@ SEVERE: Native code library (32 and 64 bit library) failed to load: java.lang.Un
 You can overcome this issue by using the following VM argument: `-Djava.library.path=${Xj3D_Installation_Path}/natives/Linux/x84_64/`
  
  But this change creates a window closing problem. It is possible to use without this library path.
+ 
+### My MSc thesis:
+It is in Turkish, here is the information for interested readers:
+* T. E. Kalayci, [Yapay Zeka Teknikleri Kullanan Üç Boyutlu Grafik Yazılımları için "Extensible 3D" (X3D) ile Bir Altyapı Oluşturulması ve Gerçekleştirimi](https://tekrei.gitlab.io/papers/2006-MSc-thesis.pdf), Ege üniversitesi Bilgisayar Mühendisliği Yüksek Lisans Tezi, İzmir, Türkiye, 2006.
