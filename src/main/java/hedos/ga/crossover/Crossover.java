@@ -1,7 +1,7 @@
-package net.tekrei.hedos.ga.crossover;
+package hedos.ga.crossover;
 
-import net.tekrei.hedos.ga.data.Chromosome;
-import net.tekrei.hedos.ga.data.GAParameters;
+import hedos.ga.data.Chromosome;
+import hedos.ga.data.GAParameters;
 
 public abstract class Crossover {
 

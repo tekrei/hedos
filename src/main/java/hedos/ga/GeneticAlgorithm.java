@@ -1,13 +1,10 @@
-/*
- * tekrei tarafindan Feb 10, 2006 tarihinde yaratilmistir.
- */
-package net.tekrei.hedos.ga;
+package hedos.ga;
 
-import net.tekrei.hedos.ga.crossover.Crossover;
-import net.tekrei.hedos.ga.data.Chromosome;
-import net.tekrei.hedos.ga.data.GAParameters;
-import net.tekrei.hedos.ga.data.Point;
-import net.tekrei.hedos.ga.mutation.Mutation;
+import hedos.ga.crossover.Crossover;
+import hedos.ga.data.Chromosome;
+import hedos.ga.data.GAParameters;
+import hedos.ga.data.Point;
+import hedos.ga.mutation.Mutation;
 
 import java.util.ArrayList;
 import java.util.Arrays;

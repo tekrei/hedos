@@ -1,4 +1,4 @@
-package net.tekrei.hedos.utility;
+package hedos.utility;
 
 import javax.swing.*;
 import java.awt.*;

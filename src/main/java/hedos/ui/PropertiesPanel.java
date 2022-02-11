@@ -1,9 +1,9 @@
-package net.tekrei.hedos.ui;
+package hedos.ui;
 
-import net.tekrei.hedos.HedosFrame;
-import net.tekrei.hedos.ga.data.GAParameters;
-import net.tekrei.hedos.ga.data.Point;
-import net.tekrei.hedos.utility.Messages;
+import hedos.HedosFrame;
+import hedos.ga.data.GAParameters;
+import hedos.ga.data.Point;
+import hedos.utility.Messages;
 
 import javax.swing.*;
 import java.awt.*;

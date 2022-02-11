@@ -1,4 +1,4 @@
-package net.tekrei.hedos.utility;
+package hedos.utility;
 
 import java.lang.reflect.Field;
 import java.util.MissingResourceException;

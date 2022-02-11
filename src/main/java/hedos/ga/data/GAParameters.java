@@ -1,15 +1,15 @@
-package net.tekrei.hedos.ga.data;
+package hedos.ga.data;
 
-import net.tekrei.hedos.ga.crossover.Crossover;
-import net.tekrei.hedos.ga.crossover.SinglePointCrossover;
-import net.tekrei.hedos.ga.crossover.TwoPointCrossover;
-import net.tekrei.hedos.ga.crossover.UniformCrossover;
-import net.tekrei.hedos.ga.mutation.Mutation;
-import net.tekrei.hedos.ga.mutation.OnlyImprovingRandomMutation;
-import net.tekrei.hedos.ga.mutation.OnlyImprovingSystematicMutation;
-import net.tekrei.hedos.ga.mutation.RandomMutation;
-import net.tekrei.hedos.utility.Messages;
-import net.tekrei.hedos.utility.Settings;
+import hedos.ga.crossover.Crossover;
+import hedos.ga.crossover.SinglePointCrossover;
+import hedos.ga.crossover.TwoPointCrossover;
+import hedos.ga.crossover.UniformCrossover;
+import hedos.ga.mutation.Mutation;
+import hedos.ga.mutation.OnlyImprovingRandomMutation;
+import hedos.ga.mutation.OnlyImprovingSystematicMutation;
+import hedos.ga.mutation.RandomMutation;
+import hedos.utility.Messages;
+import hedos.utility.Settings;
 
 import java.util.HashMap;
 import java.util.Random;

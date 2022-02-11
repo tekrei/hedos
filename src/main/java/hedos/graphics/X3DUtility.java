@@ -1,7 +1,7 @@
-package net.tekrei.hedos.graphics;
+package hedos.graphics;
 
-import net.tekrei.hedos.ga.data.Point;
-import net.tekrei.hedos.utility.Settings;
+import hedos.ga.data.Point;
+import hedos.utility.Settings;
 import org.web3d.x3d.sai.*;
 import org.web3d.x3d.sai.grouping.Transform;
 import org.web3d.x3d.sai.rendering.Coordinate;

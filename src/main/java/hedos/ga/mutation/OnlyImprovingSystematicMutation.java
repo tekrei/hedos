@@ -1,8 +1,8 @@
-package net.tekrei.hedos.ga.mutation;
+package hedos.ga.mutation;
 
-import net.tekrei.hedos.ga.GeneticAlgorithm;
-import net.tekrei.hedos.ga.data.Chromosome;
-import net.tekrei.hedos.ga.data.GAParameters;
+import hedos.ga.GeneticAlgorithm;
+import hedos.ga.data.Chromosome;
+import hedos.ga.data.GAParameters;
 
 public class OnlyImprovingSystematicMutation extends Mutation {
 

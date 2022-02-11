@@ -1,12 +1,12 @@
-package net.tekrei.hedos;
+package hedos;
 
-import net.tekrei.hedos.ga.GeneticAlgorithm;
-import net.tekrei.hedos.ga.data.Chromosome;
-import net.tekrei.hedos.ga.data.Point;
-import net.tekrei.hedos.graphics.X3DUtility;
-import net.tekrei.hedos.ui.PropertiesPanel;
-import net.tekrei.hedos.utility.Messages;
-import net.tekrei.hedos.utility.Settings;
+import hedos.ga.GeneticAlgorithm;
+import hedos.ga.data.Chromosome;
+import hedos.ga.data.Point;
+import hedos.graphics.X3DUtility;
+import hedos.ui.PropertiesPanel;
+import hedos.utility.Messages;
+import hedos.utility.Settings;
 
 import javax.swing.*;
 import java.awt.*;

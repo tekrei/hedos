@@ -1,7 +1,7 @@
-package net.tekrei.hedos.ga.crossover;
+package hedos.ga.crossover;
 
-import net.tekrei.hedos.ga.GeneticAlgorithm;
-import net.tekrei.hedos.ga.data.Chromosome;
+import hedos.ga.GeneticAlgorithm;
+import hedos.ga.data.Chromosome;
 
 public class SinglePointCrossover extends Crossover {
     @Override
