@@ -20,7 +20,10 @@ public class GAParameters {
         TWO_POINT(MessageKeys.CROSSOVER_TWO_POINT),
         UNIFORM(MessageKeys.CROSSOVER_UNIFORM),
         ORDERED(MessageKeys.CROSSOVER_ORDERED),
-        VECTORIZED_UNIFORM(MessageKeys.CROSSOVER_VECTORIZED_UNIFORM);
+        VECTORIZED_UNIFORM(MessageKeys.CROSSOVER_VECTORIZED_UNIFORM),
+        PMX("GA.Crossover.PMX"),
+        CYCLE("GA.Crossover.Cycle"),
+        ERX("GA.Crossover.ERX");
 
         private final String nameKey;
         CrossoverType(String nameKey) { this.nameKey = nameKey; }
@@ -37,7 +40,9 @@ public class GAParameters {
         RANDOM(MessageKeys.MUTATION_RANDOM),
         ONLY_IMPROVING_RANDOM(MessageKeys.MUTATION_ONLY_IMPROVING_RANDOM),
         ONLY_IMPROVING_SYSTEMATIC(MessageKeys.MUTATION_ONLY_IMPROVING_SYSTEMATIC),
-        VECTORIZED_SCRAMBLE(MessageKeys.MUTATION_VECTORIZED_SCRAMBLE);
+        VECTORIZED_SCRAMBLE(MessageKeys.MUTATION_VECTORIZED_SCRAMBLE),
+        INVERSION("GA.Mutation.Inversion"),
+        DISPLACEMENT("GA.Mutation.Displacement");
 
         private final String nameKey;
         MutationType(String nameKey) { this.nameKey = nameKey; }
@@ -52,7 +57,8 @@ public class GAParameters {
 
     public enum SelectionType {
         TOURNAMENT(MessageKeys.SELECTION_TOURNAMENT),
-        ROULETTE_WHEEL(MessageKeys.SELECTION_ROULETTE_WHEEL);
+        ROULETTE_WHEEL(MessageKeys.SELECTION_ROULETTE_WHEEL),
+        SUS("GA.Selection.SUS");
 
         private final String nameKey;
         SelectionType(String nameKey) { this.nameKey = nameKey; }
@@ -69,9 +75,12 @@ public class GAParameters {
     public enum LocalOptimizationType {
         NONE("GA.LocalOpt.None"),
         TWO_OPT("GA.LocalOpt.2Opt"),
+        BEST_TWO_OPT("GA.LocalOpt.Best2Opt"),
         THREE_OPT("GA.LocalOpt.3Opt"),
+        BEST_THREE_OPT("GA.LocalOpt.Best3Opt"),
         LIMITED_THREE_OPT("GA.LocalOpt.Limited3Opt"),
         PARTITIONED_2_OPT("GA.LocalOpt.Partitioned2Opt"),
+        PARTITIONED_3_OPT("GA.LocalOpt.Partitioned3Opt"),
         LIN_KERNIGHAN("GA.LocalOpt.LinKernighan"),
         MULTI_START_LIN_KERNIGHAN("GA.LocalOpt.MultiStartLK");
 
@@ -96,6 +105,7 @@ public class GAParameters {
     private SelectionType selectionType;
     private LocalOptimizationType localOptimizationType;
     private int tournamentSize;
+    private int neighborhoodSize;
     private float turnPenaltyFactor;
     private long evaluationTimeout; // Timeout in milliseconds
 
@@ -118,6 +128,7 @@ public class GAParameters {
         this.selectionType = SelectionType.fromKey(settings.getString(MessageKeys.PARAM_SEL_TYPE));
         this.localOptimizationType = LocalOptimizationType.fromKey(settings.getString("localOptimizationType"));
 
+        this.neighborhoodSize = settings.getInt("neighborhoodSize", 20);
         this.tournamentSize = settings.getInt(MessageKeys.PARAM_TOUR_SIZE, 3);
         this.turnPenaltyFactor = settings.getFloat(MessageKeys.PARAM_TURN_PENALTY, 50.0f);
         this.evaluationTimeout = settings.getInt(MessageKeys.PARAM_EVAL_TIMEOUT, 5000);
@@ -133,6 +144,7 @@ public class GAParameters {
         settings.set(MessageKeys.PARAM_MUT_TYPE, mutationType.getNameKey());
         settings.set(MessageKeys.PARAM_CROSS_TYPE, crossoverType.getNameKey());
         settings.set(MessageKeys.PARAM_SEL_TYPE, selectionType.getNameKey());
+        settings.set("neighborhoodSize", neighborhoodSize);
         settings.set(MessageKeys.PARAM_TOUR_SIZE, tournamentSize);
         settings.set(MessageKeys.PARAM_TURN_PENALTY, turnPenaltyFactor);
         settings.set(MessageKeys.PARAM_EVAL_TIMEOUT, evaluationTimeout);
@@ -173,6 +185,9 @@ public class GAParameters {
 
     public int getTournamentSize() { return tournamentSize; }
     public void setTournamentSize(int tournamentSize) { this.tournamentSize = tournamentSize; }
+
+    public int getNeighborhoodSize() { return neighborhoodSize; }
+    public void setNeighborhoodSize(int size) { this.neighborhoodSize = size; }
 
     public float getTurnPenaltyFactor() { return turnPenaltyFactor; }
     public void setTurnPenaltyFactor(float factor) { this.turnPenaltyFactor = factor; }

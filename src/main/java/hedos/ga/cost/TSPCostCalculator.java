@@ -46,9 +46,15 @@ public class TSPCostCalculator implements CostCalculator {
 
         long start = System.nanoTime();
         precomputeDistances(n);
-        precomputeNeighbors(n, 20);
+        initNeighbors();
         double duration = (System.nanoTime() - start) / 1_000_000.0;
         logger.info("Distance matrix and neighbor lists ({}x{}) precomputation took {} ms", n, n, duration);
+    }
+
+    public void initNeighbors() {
+        if (targets != null) {
+            precomputeNeighbors(targets.size(), gaParams.getNeighborhoodSize());
+        }
     }
 
     private void precomputeDistances(int n) {

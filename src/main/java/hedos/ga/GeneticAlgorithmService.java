@@ -24,7 +24,7 @@ public class GeneticAlgorithmService {
     private final CostCalculator calculator;
     private final GAParameters gaParameters;
 
-    public record ProgressUpdate(int current, int total, float bestCost, long duration, long lsDuration) {}
+    public record ProgressUpdate(int current, int total, float bestCost, long duration, long lsDuration, String lsoKey, boolean neighborhoodIncreased) {}
     public record TestUpdate(int trial, int totalTrials, float cost, boolean finished) {}
 
     @Inject
@@ -47,8 +47,8 @@ public class GeneticAlgorithmService {
         new SwingWorker<Chromosome, ProgressUpdate>() {
             @Override
             protected Chromosome doInBackground() {
-                ga.setProgressListener((current, total, bestCost, duration, lsDuration) -> 
-                    publish(new ProgressUpdate(current, total, bestCost, duration, lsDuration)));
+                ga.setProgressListener((current, total, bestCost, duration, lsDuration, lsoKey, neighborhoodIncreased) -> 
+                    publish(new ProgressUpdate(current, total, bestCost, duration, lsDuration, lsoKey, neighborhoodIncreased)));
                 return ga.run(targets);
             }
 

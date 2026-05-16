@@ -47,11 +47,20 @@ public class HedosModule extends AbstractModule {
         crossoverBinder.addBinding(GAParameters.CrossoverType.UNIFORM).to(UniformCrossover.class);
         crossoverBinder.addBinding(GAParameters.CrossoverType.ORDERED).to(OrderedCrossover.class);
         crossoverBinder.addBinding(GAParameters.CrossoverType.VECTORIZED_UNIFORM).to(VectorizedUniformCrossover.class);
+        crossoverBinder.addBinding(GAParameters.CrossoverType.ERX).to(EdgeRecombinationCrossover.class);
+        crossoverBinder.addBinding(GAParameters.CrossoverType.PMX).to(PartiallyMappedCrossover.class);
+        crossoverBinder.addBinding(GAParameters.CrossoverType.CYCLE).to(CycleCrossover.class);
 
         // Local Search MapBinder
         MapBinder<GAParameters.LocalOptimizationType, LocalSearchOptimizer> lsoBinder = 
             MapBinder.newMapBinder(binder(), GAParameters.LocalOptimizationType.class, LocalSearchOptimizer.class);
         lsoBinder.addBinding(GAParameters.LocalOptimizationType.TWO_OPT).to(TwoOptOptimization.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.BEST_TWO_OPT).to(BestTwoOptOptimization.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.THREE_OPT).to(FirstThreeOptOptimization.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.BEST_THREE_OPT).to(BestThreeOptOptimization.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.LIMITED_THREE_OPT).to(FirstThreeOptOptimization.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.PARTITIONED_2_OPT).to(PartitionedTwoOptOptimization.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.PARTITIONED_3_OPT).to(PartitionedThreeOptOptimization.class);
         lsoBinder.addBinding(GAParameters.LocalOptimizationType.LIN_KERNIGHAN).to(LinKernighanOptimization.class);
         lsoBinder.addBinding(GAParameters.LocalOptimizationType.MULTI_START_LIN_KERNIGHAN).to(MultiStartLocalSearch.class);
 
@@ -62,12 +71,16 @@ public class HedosModule extends AbstractModule {
         mutationBinder.addBinding(GAParameters.MutationType.ONLY_IMPROVING_RANDOM).to(OnlyImprovingRandomMutation.class);
         mutationBinder.addBinding(GAParameters.MutationType.ONLY_IMPROVING_SYSTEMATIC).to(OnlyImprovingSystematicMutation.class);
         mutationBinder.addBinding(GAParameters.MutationType.VECTORIZED_SCRAMBLE).to(VectorizedScrambleMutation.class);
+        mutationBinder.addBinding(GAParameters.MutationType.INVERSION).to(InversionMutation.class);
+        mutationBinder.addBinding(GAParameters.MutationType.DISPLACEMENT).to(DisplacementMutation.class);
 
         // Configure Selection MapBinder for SelectionFactory
         MapBinder<GAParameters.SelectionType, Selection> selectionBinder = 
             MapBinder.newMapBinder(binder(), GAParameters.SelectionType.class, Selection.class);
         selectionBinder.addBinding(GAParameters.SelectionType.TOURNAMENT).to(TournamentSelection.class);
         selectionBinder.addBinding(GAParameters.SelectionType.ROULETTE_WHEEL).to(RouletteWheelSelection.class);
+        selectionBinder.addBinding(GAParameters.SelectionType.SUS).to(StochasticUniversalSampling.class);
+
 
         // Assisted Injection Factories
         install(new FactoryModuleBuilder().build(TargetManagementDialog.Factory.class));

@@ -37,10 +37,11 @@ public class GeneticAlgorithm {
     private CostCalculator calculator;
     private ProgressListener progressListener;
     private volatile boolean cancelled = false;
+    private int stagnationCount = 0;
 
     @FunctionalInterface
     public interface ProgressListener {
-        void onProgress(int current, int total, float bestCost, long durationMs, long lsDurationMs);
+        void onProgress(int current, int total, float bestCost, long durationMs, long lsDurationMs, String lsoKey, boolean neighborhoodIncreased);
     }
 
     @Inject
@@ -80,6 +81,7 @@ public class GeneticAlgorithm {
 
         long startTime = System.currentTimeMillis();
         int generation = 0;
+        stagnationCount = 0;
         Crossover crossoverOperator = crossoverFactory.get(gaParameters.getCrossoverType());
         Mutation mutator = mutationFactory.get(gaParameters.getMutationType());
         Selection selectionOperator = selectionFactory.get(gaParameters.getSelectionType());
@@ -112,6 +114,8 @@ public class GeneticAlgorithm {
 
             // Hybrid GA: Apply Selected Local Search to the best individual periodically
             long lsDuration = 0;
+            String currentLsoKey = "GA.LocalOpt.None";
+
             if (generation % 5 == 0 && calculator instanceof TSPCostCalculator tsp) {
                 long lsStart = System.nanoTime();
                 int[] genes = population[0].genes();
@@ -120,6 +124,7 @@ public class GeneticAlgorithm {
 
                 LocalSearchOptimizer lso = localSearchFactory.get(gaParameters.getLocalOptimizationType());
                 if (lso != null) {
+                    currentLsoKey = lso.getNameKey();
                     int[] optimizedGenes = genes.clone();
                     lso.optimize(optimizedGenes, dist, tsp.getNeighborLists(), n);
                     population[0] = new Chromosome(optimizedGenes);
@@ -131,11 +136,30 @@ public class GeneticAlgorithm {
             }
 
             Arrays.sort(population);
+
+            // Stagnation logic: increase neighborhood size if fitness plateaus
+            if (best != null && population[0].cost() < best.cost()) {
+                stagnationCount = 0;
+            } else {
+                stagnationCount++;
+            }
+
+            boolean neighborhoodIncreased = false;
+            if (stagnationCount >= 50) {
+                int newSize = gaParameters.getNeighborhoodSize() + 5;
+                if (newSize < targets.size()) {
+                    gaParameters.setNeighborhoodSize(newSize);
+                    if (calculator instanceof TSPCostCalculator tsp) tsp.initNeighbors();
+                    stagnationCount = 0;
+                    neighborhoodIncreased = true;
+                }
+            }
+
             elitism();
             long genDuration = (System.nanoTime() - genStartTime) / 1_000_000;
 
             if (progressListener != null) {
-                progressListener.onProgress(generation, gaParameters.getGenerationCount(), best.cost(), genDuration, lsDuration);
+                progressListener.onProgress(generation, gaParameters.getGenerationCount(), best.cost(), genDuration, lsDuration, currentLsoKey, neighborhoodIncreased);
             }
         }
         logger.info("Genetic Algorithm finished {} generations in {} ms", generation, (System.currentTimeMillis() - startTime));

@@ -323,7 +323,7 @@ public class HedosFrame extends JFrame {
                 String.format("Generation %d (%d ms): Best Fitness = %.2f", update.current(), update.duration(), update.bestCost()) : null;
             
             if (msg != null) log(msg);
-            chartPanel.addData(update.duration(), update.lsDuration(), update.bestCost());
+            chartPanel.addData(update.current(), update.duration(), update.lsDuration(), update.bestCost(), messages.getString(update.lsoKey()), update.neighborhoodIncreased());
 
             int percent = (int) (((float) update.current() / update.total()) * 100);
             progressBar.setValue(percent);
