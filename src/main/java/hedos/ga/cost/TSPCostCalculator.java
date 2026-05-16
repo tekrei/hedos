@@ -36,7 +36,10 @@ public class TSPCostCalculator implements CostCalculator {
     public void init(List<Point> targets) {
         this.targets = targets;
         int n = targets.size();
-        this.distanceMatrixSegment = Arena.ofAuto().allocate((long) n * n * Float.BYTES, ValueLayout.JAVA_FLOAT.byteAlignment());
+        
+        // Optimize for SIMD by aligning to 64 bytes (AVX-512 compatible)
+        this.distanceMatrixSegment = Arena.ofAuto().allocate((long) n * n * Float.BYTES, 64);
+        
         this.targetXs = new float[n];
         this.targetYs = new float[n];
         this.targetZs = new float[n];

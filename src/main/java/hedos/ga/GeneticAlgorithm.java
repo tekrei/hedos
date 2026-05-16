@@ -11,13 +11,17 @@ import hedos.ga.data.Point;
 import hedos.ga.mutation.Mutation;
 import hedos.ga.mutation.MutationFactory;
 import hedos.ga.lso.LocalSearchFactory;
+import hedos.ga.lso.LSORuntime;
 import hedos.ga.lso.LocalSearchOptimizer;
 import hedos.ga.selection.Selection;
 import hedos.ga.selection.SelectionFactory;
 
 import java.util.*;
-import java.util.stream.IntStream;
+import java.time.Duration;
+import java.lang.foreign.Arena;
+import java.lang.foreign.ValueLayout;
 import java.lang.foreign.MemorySegment;
+import java.util.concurrent.StructuredTaskScope;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +39,10 @@ public class GeneticAlgorithm {
     private final LocalSearchFactory localSearchFactory;
     private final PopulationEvaluator evaluator;
 
+    public static final ScopedValue<ProgressListener> PROGRESS_LISTENER = ScopedValue.newInstance();
+
     private CostCalculator calculator;
-    private ProgressListener progressListener;
+    private MemorySegment populationSegment; // Off-heap storage for all genes
     private volatile boolean cancelled = false;
     private int stagnationCount = 0;
 
@@ -66,10 +72,6 @@ public class GeneticAlgorithm {
         this.calculator = calculator;
     }
 
-    public void setProgressListener(ProgressListener progressListener) {
-        this.progressListener = progressListener;
-    }
-
     public void cancel() {
         this.cancelled = true;
     }
@@ -96,11 +98,20 @@ public class GeneticAlgorithm {
             long genStartTime = System.nanoTime();
             // Step 1: Selection (Parent Selection / Mating Pool)
             if (selectionOperator != null) {
-                // Parallelizing independent selection operations
-                population = IntStream.range(0, population.length)
-                        .parallel()
-                        .mapToObj(i -> selectionOperator.select(population, gaParameters.getTournamentSize()))
-                        .toArray(Chromosome[]::new);
+                try {
+                    population = ScopedValue.where(GAParameters.CURRENT, gaParameters).call(() -> {
+                        try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll())) {
+                            var tasks = new ArrayList<StructuredTaskScope.Subtask<Chromosome>>();
+                            for (int i = 0; i < population.length; i++) {
+                                tasks.add(scope.fork(() -> selectionOperator.select(population, gaParameters.getTournamentSize())));
+                            }
+                            scope.join();
+                            return tasks.stream()
+                                .map(t -> t.state() == StructuredTaskScope.Subtask.State.SUCCESS ? t.get() : population[tasks.indexOf(t)])
+                                .toArray(Chromosome[]::new);
+                        }
+                    });
+                } catch (Exception e) { throw new RuntimeException(e); }
             }
 
             // Step 2: Variation (Crossover and Mutation)
@@ -127,12 +138,17 @@ public class GeneticAlgorithm {
                 if (lso != null) {
                     currentLsoKey = lso.getNameKey();
                     int[] optimizedGenes = genes.clone();
-                    lso.optimize(optimizedGenes, dist, tsp.getNeighborLists(), n);
+                    // Use ScopedValue to pass the distance matrix off-heap segment
+                    ScopedValue.where(LSORuntime.DISTANCE_MATRIX, dist)
+                               .where(LSORuntime.CALCULATOR, calculator)
+                               .run(() -> lso.optimize(optimizedGenes, tsp.getNeighborLists(), n));
                     population[0] = new Chromosome(optimizedGenes);
                 }
                 
                 population[0].setEvaluated(false);
-                evaluator.evaluate(new Chromosome[]{population[0]}, calculator, gaParameters);
+                ScopedValue.where(GAParameters.CURRENT, gaParameters)
+                           .run(() -> evaluator.evaluate(new Chromosome[]{population[0]}, calculator, gaParameters));
+                
                 lsDuration = (System.nanoTime() - lsStart) / 1_000_000;
             }
 
@@ -159,8 +175,8 @@ public class GeneticAlgorithm {
             elitism();
             long genDuration = (System.nanoTime() - genStartTime) / 1_000_000;
 
-            if (progressListener != null) {
-                progressListener.onProgress(generation, gaParameters.getGenerationCount(), best.cost(), genDuration, lsDuration, currentLsoKey, neighborhoodIncreased);
+            if (PROGRESS_LISTENER.isBound()) {
+                PROGRESS_LISTENER.get().onProgress(generation, gaParameters.getGenerationCount(), best.cost(), genDuration, lsDuration, currentLsoKey, neighborhoodIncreased);
             }
         }
         logger.info("Genetic Algorithm finished {} generations in {} ms", generation, (System.currentTimeMillis() - startTime));
@@ -179,9 +195,14 @@ public class GeneticAlgorithm {
 
     private void initPopulation() {
         population = new Chromosome[gaParameters.getPopulationSize()];
+        int n = targets.size();
+        // Allocate off-heap segment for the entire population's genes
+        this.populationSegment = Arena.ofAuto().allocate((long) population.length * n * ValueLayout.JAVA_INT.byteSize());
 
         for (int i = 0; i < population.length; i++) {
-            int[] genes = chromosomeFactory.createRandomGenes(targets.size());
+            int[] genes = chromosomeFactory.createRandomGenes(n);
+            // Copy to off-heap for future crossover/mutation operations to use directly
+            MemorySegment.copy(MemorySegment.ofArray(genes), 0, populationSegment, (long) i * n * ValueLayout.JAVA_INT.byteSize(), (long) n * ValueLayout.JAVA_INT.byteSize());
             population[i] = new Chromosome(genes, calculator.calculateCost(genes), calculator.calculateTurnCost(genes));
         }
     }

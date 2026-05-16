@@ -1,9 +1,15 @@
 package hedos.ga.lso;
 
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.util.stream.IntStream;
+import jdk.incubator.vector.IntVector;
+import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.VectorSpecies;
+import jdk.incubator.vector.VectorOperators;
+import java.util.ArrayList;
+import java.util.concurrent.StructuredTaskScope;
 
 /**
  * Best Improvement 3-opt optimization.
@@ -11,23 +17,47 @@ import java.util.stream.IntStream;
  */
 @Singleton
 public class BestThreeOptOptimization extends LocalSearchOptimizer {
+    private static final VectorSpecies<Integer> I_SPECIES = IntVector.SPECIES_PREFERRED;
+    private static final VectorSpecies<Float> F_SPECIES = FloatVector.SPECIES_PREFERRED;
+    private final LSORuntime runtime;
+
+    @Inject
+    public BestThreeOptOptimization(LSORuntime runtime) {
+        this.runtime = runtime;
+    }
 
     private record Move(float gain, int i, int j, int k, int type) {
         static final Move NONE = new Move(-1, -1, -1, -1, -1);
     }
 
     @Override
-    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
+    public void optimize(int[] genes, int[][] neighborLists, int n) {
+        MemorySegment distanceMatrix = runtime.getDistanceMatrix();
         int[] pos = new int[n];
         for (int p = 0; p < n; p++) pos[genes[p]] = p;
 
         boolean improvement = true;
+        int batchSize = 25; // Batching O(N) forks into O(N/batchSize)
         while (improvement) {
-            // Parallel search for the best move across all possible outer loop 'i' indices
-            Move bestMove = IntStream.range(1, genes.length - 4)
-                    .parallel()
-                    .mapToObj(i -> findBestMoveForI(i, genes, pos, distanceMatrix, neighborLists, n))
-                    .reduce(Move.NONE, (m1, m2) -> m1.gain > m2.gain ? m1 : m2);
+            Move bestMove;
+            try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll())) {
+                var tasks = new ArrayList<StructuredTaskScope.Subtask<Move>>();
+                for (int i = 1; i < genes.length - 4; i += batchSize) {
+                    final int start = i;
+                    final int end = Math.min(i + batchSize, genes.length - 4);
+                    tasks.add(scope.fork(() -> {
+                        Move localBest = Move.NONE;
+                        for (int idx = start; idx < end; idx++) {
+                            Move m = findBestMoveForI(idx, genes, pos, distanceMatrix, neighborLists, n);
+                            if (m.gain > localBest.gain) localBest = m;
+                        }
+                        return localBest;
+                    }));
+                }
+                scope.join();
+                bestMove = tasks.stream().map(StructuredTaskScope.Subtask::get)
+                        .reduce(Move.NONE, (m1, m2) -> m1.gain > m2.gain ? m1 : m2);
+            } catch (Exception e) { throw new RuntimeException("3-Opt Parallel Search Failed", e); }
 
             if (bestMove.gain > 0.001f) {
                 applyMove(genes, pos, bestMove);
@@ -40,32 +70,76 @@ public class BestThreeOptOptimization extends LocalSearchOptimizer {
 
     private Move findBestMoveForI(int i, int[] genes, int[] pos, MemorySegment dist, int[][] neighborLists, int n) {
         int cityA = genes[i - 1];
+        int cityB = genes[i];
+        float distAB = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityA * n + cityB);
         Move bestForI = Move.NONE;
+
+        float[] distsAC = new float[I_SPECIES.length()];
+        float[] distsBD = new float[I_SPECIES.length()];
+        float[] distsCE = new float[I_SPECIES.length()];
+        float[] distsDF = new float[I_SPECIES.length()];
+        float[] distsAD = new float[I_SPECIES.length()];
+        float[] distsEB = new float[I_SPECIES.length()];
+        float[] distsCF = new float[I_SPECIES.length()];
+        float[] distsEF = new float[I_SPECIES.length()];
 
         for (int j = i + 2; j < genes.length - 2; j++) {
             int cityC = genes[j - 1];
-            for (int cityF : neighborLists[cityC]) {
-                int k = pos[cityF];
-                if (k >= j + 2 && k < genes.length - 1) {
-                    int a = cityA, b = genes[i], c = cityC, d = genes[j], e = genes[k - 1], f = cityF;
-                    float d0 = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + b) + 
-                               dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + d) + 
-                               dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + f);
+            int cityD = genes[j];
+            float distCD = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityC * n + cityD);
+            int[] neighbors = neighborLists[cityC];
 
-                    float g1 = d0 - (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + c) + 
-                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) b * n + d) + 
-                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + f));
-                    if (g1 > bestForI.gain) bestForI = new Move(g1, i, j, k, 1);
+            for (int m = 0; m < neighbors.length; m += I_SPECIES.length()) {
+                var mask = I_SPECIES.indexInRange(m, neighbors.length);
+                for (int lane = 0; lane < I_SPECIES.length(); lane++) {
+                    if (mask.laneIsSet(lane)) {
+                        int cityF = neighbors[m + lane];
+                        int k = pos[cityF];
+                        if (k >= j + 2 && k < genes.length - 1) {
+                            int cityE = genes[k - 1];
+                            distsAC[lane] = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityA * n + cityC);
+                            distsBD[lane] = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityB * n + cityD);
+                            distsEF[lane] = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityE * n + cityF);
+                            distsCE[lane] = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityC * n + cityE);
+                            distsDF[lane] = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityD * n + cityF);
+                            distsAD[lane] = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityA * n + cityD);
+                            distsEB[lane] = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityE * n + cityB);
+                            distsCF[lane] = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) cityC * n + cityF);
+                        } else {
+                            distsAC[lane] = distsBD[lane] = distsEF[lane] = distsCE[lane] = distsDF[lane] = distsAD[lane] = distsEB[lane] = distsCF[lane] = 1e9f;
+                        }
+                    }
+                }
 
-                    float g2 = d0 - (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + b) + 
-                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + e) + 
-                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) d * n + f));
-                    if (g2 > bestForI.gain) bestForI = new Move(g2, i, j, k, 2);
+                var vAC = FloatVector.fromArray(F_SPECIES, distsAC, 0, mask.cast(F_SPECIES));
+                var vBD = FloatVector.fromArray(F_SPECIES, distsBD, 0, mask.cast(F_SPECIES));
+                var vEF = FloatVector.fromArray(F_SPECIES, distsEF, 0, mask.cast(F_SPECIES));
+                var vCE = FloatVector.fromArray(F_SPECIES, distsCE, 0, mask.cast(F_SPECIES));
+                var vDF = FloatVector.fromArray(F_SPECIES, distsDF, 0, mask.cast(F_SPECIES));
+                var vAD = FloatVector.fromArray(F_SPECIES, distsAD, 0, mask.cast(F_SPECIES));
+                var vEB = FloatVector.fromArray(F_SPECIES, distsEB, 0, mask.cast(F_SPECIES));
+                var vCF = FloatVector.fromArray(F_SPECIES, distsCF, 0, mask.cast(F_SPECIES));
 
-                    float g3 = d0 - (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + d) + 
-                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + b) + 
-                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + f));
-                    if (g3 > bestForI.gain) bestForI = new Move(g3, i, j, k, 3);
+                var d0 = vEF.add(distAB + distCD);
+                var g1 = d0.sub(vAC.add(vBD).add(vEF));
+                var g2 = d0.sub(FloatVector.broadcast(F_SPECIES, distAB).add(vCE).add(vDF));
+                var g3 = d0.sub(vAD.add(vEB).add(vCF));
+
+                float maxG = g1.lanewise(VectorOperators.MAX, g2).lanewise(VectorOperators.MAX, g3)
+                              .reduceLanes(VectorOperators.MAX, mask.cast(F_SPECIES));
+
+                if (maxG > bestForI.gain) {
+                    for (int lane = 0; lane < I_SPECIES.length(); lane++) {
+                        if (mask.laneIsSet(lane)) {
+                            int cityF = neighbors[m + lane];
+                            int k = pos[cityF];
+                            if (k >= j + 2 && k < genes.length - 1) {
+                                if (g1.lane(lane) > bestForI.gain) bestForI = new Move(g1.lane(lane), i, j, k, 1);
+                                if (g2.lane(lane) > bestForI.gain) bestForI = new Move(g2.lane(lane), i, j, k, 2);
+                                if (g3.lane(lane) > bestForI.gain) bestForI = new Move(g3.lane(lane), i, j, k, 3);
+                            }
+                        }
+                    }
                 }
             }
         }

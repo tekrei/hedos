@@ -49,10 +49,11 @@ public class GeneticAlgorithmService {
 
         new SwingWorker<Chromosome, ProgressUpdate>() {
             @Override
-            protected Chromosome doInBackground() {
-                ga.setProgressListener((current, total, bestCost, duration, lsDuration, lsoKey, neighborhoodIncreased) -> 
-                    publish(new ProgressUpdate(current, total, bestCost, duration, lsDuration, lsoKey, neighborhoodIncreased)));
-                return ga.run(targets);
+            protected Chromosome doInBackground() throws Exception {
+                return ScopedValue.where(GeneticAlgorithm.PROGRESS_LISTENER, 
+                    (current, total, bestCost, duration, lsDuration, lsoKey, neighborhoodIncreased) -> 
+                        publish(new ProgressUpdate(current, total, bestCost, duration, lsDuration, lsoKey, neighborhoodIncreased)))
+                    .call(() -> ga.run(targets));
             }
 
             @Override

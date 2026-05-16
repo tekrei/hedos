@@ -1,8 +1,9 @@
 package hedos.ga.lso;
 
+import com.google.inject.Inject;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.util.stream.IntStream;
+import java.util.concurrent.StructuredTaskScope;
 
 /**
  * Partitioned 3-opt optimization.
@@ -11,55 +12,68 @@ import java.util.stream.IntStream;
  * improvements simultaneously without waiting for a global reduction.
  */
 public class PartitionedThreeOptOptimization extends LocalSearchOptimizer {
+    private final LSORuntime runtime;
+    private final BestThreeOptOptimization sequentialLso;
+
+    @Inject
+    public PartitionedThreeOptOptimization(LSORuntime runtime, BestThreeOptOptimization sequentialLso) {
+        this.runtime = runtime;
+        this.sequentialLso = sequentialLso;
+    }
 
     @Override
-    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
+    public void optimize(int[] genes, int[][] neighborLists, int n) {
+        MemorySegment distanceMatrix = runtime.getDistanceMatrix();
         int processors = Runtime.getRuntime().availableProcessors();
         // We need segments large enough for 3-opt (at least 12 cities)
         int segmentSize = (genes.length - 2) / processors;
         
         if (segmentSize < 12) {
             // Fallback to sequential best-improvement for small tours
-            new BestThreeOptOptimization().optimize(genes, distanceMatrix, neighborLists, n);
+            sequentialLso.optimize(genes, neighborLists, n);
             return;
         }
 
-        IntStream.range(0, processors).parallel().forEach(p -> {
-            int start = 1 + (p * segmentSize);
-            int end = (p == processors - 1) ? genes.length - 1 : start + segmentSize;
-            
-            boolean segmentImproved = true;
-            while (segmentImproved) {
-                segmentImproved = false;
-                for (int i = start + 1; i < end - 4; i++) {
-                    int cityA = genes[i - 1];
-                    for (int j = i + 2; j < end - 2; j++) {
-                        int cityC = genes[j - 1];
-                        // In partitioned mode, we only check neighbors within the same segment 
-                        // to maintain thread-safe, lock-free parallel execution.
-                        for (int cityF : neighborLists[cityC]) {
-                            // Quick search for neighbor index within segment
-                            int k = -1;
-                            for (int idx = j + 2; idx < end; idx++) {
-                                if (genes[idx] == cityF) {
-                                    k = idx;
-                                    break;
+        try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll())) {
+            for (int p = 0; p < processors; p++) {
+                final int procIdx = p;
+                scope.fork(() -> {
+                    int start = 1 + (procIdx * segmentSize);
+                    int end = (procIdx == processors - 1) ? genes.length - 1 : start + segmentSize;
+                    
+                    boolean segmentImproved = true;
+                    while (segmentImproved) {
+                        segmentImproved = false;
+                        for (int i = start + 1; i < end - 4; i++) {
+                            int cityA = genes[i - 1];
+                            for (int j = i + 2; j < end - 2; j++) {
+                                int cityC = genes[j - 1];
+                                for (int cityF : neighborLists[cityC]) {
+                                    int k = -1;
+                                    for (int idx = j + 2; idx < end; idx++) {
+                                        if (genes[idx] == cityF) {
+                                            k = idx;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (k != -1 && tryLocal3OptMove(genes, i, j, k, distanceMatrix, n)) {
+                                        segmentImproved = true;
+                                        break;
+                                    }
                                 }
+                                if (segmentImproved) break;
                             }
-                            
-                            if (k != -1) {
-                                if (tryLocal3OptMove(genes, i, j, k, distanceMatrix, n)) {
-                                    segmentImproved = true;
-                                    break;
-                                }
-                            }
+                            if (segmentImproved) break;
                         }
-                        if (segmentImproved) break;
                     }
-                    if (segmentImproved) break;
-                }
+                    return null;
+                });
             }
-        });
+            scope.join();
+        } catch (Exception e) {
+            throw new RuntimeException("Partitioned 3-Opt failed", e);
+        }
     }
 
     private boolean tryLocal3OptMove(int[] genes, int i, int j, int k, MemorySegment dist, int n) {

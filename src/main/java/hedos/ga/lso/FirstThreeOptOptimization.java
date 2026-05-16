@@ -1,5 +1,6 @@
 package hedos.ga.lso;
 
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -12,13 +13,20 @@ import java.util.Optional;
  */
 @Singleton
 public class FirstThreeOptOptimization extends LocalSearchOptimizer {
+    private final LSORuntime runtime;
+
+    @Inject
+    public FirstThreeOptOptimization(LSORuntime runtime) {
+        this.runtime = runtime;
+    }
 
     private record Move(float gain, int i, int j, int k, int type) {
         static final Move NONE = new Move(-1, -1, -1, -1, -1);
     }
 
     @Override
-    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
+    public void optimize(int[] genes, int[][] neighborLists, int n) {
+        MemorySegment distanceMatrix = runtime.getDistanceMatrix();
         int[] pos = new int[n];
         for (int p = 0; p < n; p++) pos[genes[p]] = p;
 

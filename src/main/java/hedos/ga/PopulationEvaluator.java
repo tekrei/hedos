@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import hedos.ga.cost.CostCalculator;
 import hedos.ga.data.Chromosome;
 import hedos.ga.data.GAParameters;
+import hedos.ga.lso.LSORuntime;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +23,9 @@ public class PopulationEvaluator {
             private final List<Throwable> failures = new CopyOnWriteArrayList<>();
             @Override
             public boolean onComplete(StructuredTaskScope.Subtask<? extends Void> subtask) {
-                if (subtask.state() == StructuredTaskScope.Subtask.State.FAILED) {
+                // Ignore InterruptedException - these are expected if the scope times out
+                if (subtask.state() == StructuredTaskScope.Subtask.State.FAILED && 
+                    !(subtask.exception() instanceof InterruptedException)) {
                     failures.add(subtask.exception());
                 }
                 return true;
@@ -32,6 +35,7 @@ public class PopulationEvaluator {
         }
 
         // Use Scoped Values to make params available to all virtual threads in this scope
+        // Note: CALCULATOR is usually already bound by the GA or Service layer.
         ScopedValue.where(GAParameters.CURRENT, params).run(() -> {
             try (var scope = StructuredTaskScope.open(new EvaluationJoiner(),
                     cfg -> cfg.withTimeout(Duration.ofMillis(params.getEvaluationTimeout())))) {
@@ -40,12 +44,16 @@ public class PopulationEvaluator {
                     final int end = Math.min(i + BATCH_SIZE, population.length);
                     
                     scope.fork(() -> {
+                        // Retrieve from ScopedValue if bound (for LSO consistency), 
+                        // otherwise fallback to the method parameter
+                        CostCalculator localCalc = LSORuntime.CALCULATOR.isBound() ? 
+                            LSORuntime.CALCULATOR.get() : calculator;
                         for (int j = start; j < end; j++) {
                             Chromosome chromosome = population[j];
                             if (!chromosome.isEvaluated()) {
                                 int[] genes = chromosome.genes();
-                                chromosome.setCost(calculator.calculateCost(genes));
-                                chromosome.setTurnCost(calculator.calculateTurnCost(genes));
+                                chromosome.setCost(localCalc.calculateCost(genes));
+                                chromosome.setTurnCost(localCalc.calculateTurnCost(genes));
                             }
                         }
                         return null;
@@ -64,8 +72,7 @@ public class PopulationEvaluator {
 
     private void handleFailures(List<Throwable> failures) {
         for (Throwable t : failures) {
-            System.err.println("Evaluation error: " + t.getMessage());
+            t.printStackTrace();
         }
-        throw new RuntimeException("Multiple errors during population evaluation");
     }
 }

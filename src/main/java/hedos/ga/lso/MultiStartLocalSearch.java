@@ -14,24 +14,29 @@ import com.google.inject.Inject;
 public class MultiStartLocalSearch extends LocalSearchOptimizer {
     private final LocalSearchOptimizer delegate;
     private final ChromosomeFactory factory;
+    private final LSORuntime runtime;
     private static final int STARTS = 4; // Number of parallel starts
 
     @Inject
-    public MultiStartLocalSearch(LinKernighanOptimization delegate, ChromosomeFactory factory) {
+    public MultiStartLocalSearch(LinKernighanOptimization delegate, ChromosomeFactory factory, LSORuntime runtime) {
         this.delegate = delegate;
         this.factory = factory;
+        this.runtime = runtime;
     }
 
     @Override
-    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
+    public void optimize(int[] genes, int[][] neighborLists, int n) {
+        MemorySegment dist = runtime.getDistanceMatrix();
         try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll())) {
             var tasks = new java.util.ArrayList<StructuredTaskScope.Subtask<int[]>>();
             
             for (int i = 0; i < STARTS; i++) {
+                final int index = i;
                 tasks.add(scope.fork(() -> {
-                    int[] localGenes = (tasks.isEmpty()) ? genes.clone() : factory.createRandomGenes(n);
-                    delegate.optimize(localGenes, distanceMatrix, neighborLists, n);
-                    return localGenes;
+                    // Deep clone to ensure total thread isolation
+                    int[] candidate = (index == 0) ? genes.clone() : factory.createRandomGenes(n);
+                    delegate.optimize(candidate, neighborLists, n);
+                    return candidate;
                 }));
             }
             scope.join();
@@ -43,7 +48,7 @@ public class MultiStartLocalSearch extends LocalSearchOptimizer {
                     continue;
                 }
                 int[] result = task.get();
-                float cost = calculatePathCost(result, distanceMatrix, n);
+                float cost = calculatePathCost(result, dist, n);
                 if (cost < bestCost) {
                     bestCost = cost;
                     System.arraycopy(result, 0, genes, 0, n);
