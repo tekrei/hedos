@@ -19,6 +19,7 @@ public class HedosModule extends AbstractModule {
         bind(Messages.class).in(Scopes.SINGLETON);
         bind(Settings.class).in(Scopes.SINGLETON);
         bind(GAParameters.class).in(Scopes.SINGLETON);
+        bind(TargetGenerator.class).in(Scopes.SINGLETON);
 
         // Bind CostCalculator to its implementation
         bind(CostCalculator.class).to(TSPCostCalculator.class).in(Scopes.SINGLETON);

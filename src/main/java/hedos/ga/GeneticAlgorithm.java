@@ -23,6 +23,9 @@ public class GeneticAlgorithm {
     private final CrossoverFactory crossoverFactory;
     private final MutationFactory mutationFactory;
     private final SelectionFactory selectionFactory;
+    private final ChromosomeFactory chromosomeFactory;
+    private final PopulationEvaluator evaluator;
+
     private CostCalculator calculator;
     private ProgressListener progressListener;
     private volatile boolean cancelled = false;
@@ -36,11 +39,15 @@ public class GeneticAlgorithm {
     public GeneticAlgorithm(GAParameters gaParameters, 
                             CrossoverFactory crossoverFactory,
                             MutationFactory mutationFactory,
-                            SelectionFactory selectionFactory) {
+                            SelectionFactory selectionFactory,
+                            ChromosomeFactory chromosomeFactory,
+                            PopulationEvaluator evaluator) {
         this.gaParameters = gaParameters;
         this.crossoverFactory = crossoverFactory;
         this.mutationFactory = mutationFactory;
         this.selectionFactory = selectionFactory;
+        this.chromosomeFactory = chromosomeFactory;
+        this.evaluator = evaluator;
     }
 
     public void setCalculator(CostCalculator calculator) {
@@ -89,14 +96,7 @@ public class GeneticAlgorithm {
                 population = mutator.mutate(population, gaParameters);
             }
 
-            // Refresh cost and sharp turns for the new generation
-            Arrays.stream(population).parallel().forEach(chromosome -> {
-                if (!chromosome.isEvaluated()) {
-                    int[] genes = chromosome.genes();
-                    chromosome.setCost(calculator.calculateCost(genes));
-                    chromosome.setTurnCost(calculator.calculateTurnCost(genes));
-                }
-            });
+            evaluator.evaluate(population, calculator, gaParameters.getEvaluationTimeout());
 
             Arrays.sort(population);
             elitism();
@@ -105,14 +105,6 @@ public class GeneticAlgorithm {
             }
         }
         return best;
-    }
-
-    private int[] randomGenes() {
-        List<Integer> indices = new ArrayList<>(
-                IntStream.range(0, targets.size()).boxed().toList()
-        );
-        Collections.shuffle(indices);
-        return indices.stream().mapToInt(i -> i).toArray();
     }
 
     private void elitism() {
@@ -129,16 +121,8 @@ public class GeneticAlgorithm {
         population = new Chromosome[gaParameters.getPopulationSize()];
 
         for (int i = 0; i < population.length; i++) {
-            int[] genes = randomGenes();
+            int[] genes = chromosomeFactory.createRandomGenes(targets.size());
             population[i] = new Chromosome(genes, calculator.calculateCost(genes), calculator.calculateTurnCost(genes));
         }
-    }
-
-    public float calculateCost(int[] genes) {
-        return calculator.calculateCost(genes);
-    }
-
-    public float calculateTurnCost(int[] genes) {
-        return calculator.calculateTurnCost(genes);
     }
 }

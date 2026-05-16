@@ -71,6 +71,7 @@ public class GAParameters {
     private SelectionType selectionType;
     private int tournamentSize;
     private float turnPenaltyFactor;
+    private long evaluationTimeout; // Timeout in milliseconds
 
     @Inject
     public GAParameters(Settings settings) {
@@ -92,6 +93,7 @@ public class GAParameters {
 
         this.tournamentSize = settings.getInt(MessageKeys.PARAM_TOUR_SIZE, 3);
         this.turnPenaltyFactor = settings.getFloat(MessageKeys.PARAM_TURN_PENALTY, 50.0f);
+        this.evaluationTimeout = settings.getInt("evaluationTimeout", 5000);
     }
 
     public void saveToSettings() {
@@ -105,6 +107,7 @@ public class GAParameters {
         settings.set(MessageKeys.PARAM_SEL_TYPE, selectionType.getNameKey());
         settings.set(MessageKeys.PARAM_TOUR_SIZE, tournamentSize);
         settings.set(MessageKeys.PARAM_TURN_PENALTY, turnPenaltyFactor);
+        settings.set("evaluationTimeout", evaluationTimeout);
     }
 
     public void resetToDefaults() {
@@ -142,6 +145,9 @@ public class GAParameters {
 
     public float getTurnPenaltyFactor() { return turnPenaltyFactor; }
     public void setTurnPenaltyFactor(float factor) { this.turnPenaltyFactor = factor; }
+
+    public long getEvaluationTimeout() { return evaluationTimeout; }
+    public void setEvaluationTimeout(long timeout) { this.evaluationTimeout = timeout; }
 
     // --- Logic Methods ---
 

@@ -1,6 +1,10 @@
 # HeDoS
 
-This source code deals with solving 3D Travelling Salesman Problem using Genetic Algorithms. It is source code of my MSc thesis from 2006, but I updated it to use Maven and latest libraries. I also fixed some display and genetic algorithm issues.
+This source code deals with solving 3D Travelling Salesman Problem using Genetic Algorithms. 
+
+Originally developed for an MSc thesis in 2006, it has been modernized to use **Java 21 (LTS)**, Maven, and structured YAML configuration.
+
+License: **Apache License 2.0**
 
 ## Xj3D installation and copying required libraries
 

@@ -70,6 +70,7 @@ public final class MessageKeys {
     public static final String GENERATOR_SUCCESS = "Generator.Success";
     public static final String GENERATOR_ERROR = "Generator.Error";
     public static final String GENERATOR_ERROR_TITLE = "Generator.ErrorTitle";
+    public static final String GENERATOR_INVALID_COUNT = "Generator.InvalidCount";
 
     public static final String SOL_PANEL_TARGET_MANAGEMENT = "SolPanel.TargetManagement";
     public static final String SOL_PANEL_ADD = "SolPanel.Add";

@@ -2,22 +2,32 @@ package hedos.utility;
 
 import hedos.ga.data.Point;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @Singleton
 public class Settings {
     private Map<String, Object> config = new HashMap<>();
-    private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    private final ObjectMapper mapper = YAMLMapper.builder()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
+            .build();
+
     private Point startPoint = null;
-    private ArrayList<Point> targets = null;
+    private List<Point> targets = null;
     private final EventBus eventBus;
 
     @Inject
@@ -26,7 +36,7 @@ public class Settings {
         // Load default settings from classpath if available
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("settings.yaml")) {
             if (input != null) {
-                config = mapper.readValue(input, Map.class);
+                config = mapper.readValue(input, new TypeReference<Map<String, Object>>() {});
             }
         } catch (IOException ex) {
             // Fallback for missing default settings
@@ -39,7 +49,7 @@ public class Settings {
     public boolean load(File file) {
         try (InputStream input = new FileInputStream(file)) {
             config.clear();
-            config = mapper.readValue(input, Map.class);
+            config = mapper.readValue(input, new TypeReference<Map<String, Object>>() {});
             // Invalidate cached objects when settings change
             startPoint = null;
             targets = null;
@@ -103,35 +113,21 @@ public class Settings {
     public Point getStartPoint() {
         if (startPoint == null) {
             Object obj = config.get(MessageKeys.SETTING_START_POINT);
-            if (obj instanceof Map<?, ?> pt) {
-                // Using Number to safely handle both Integer and Double from YAML
-                startPoint = new Point(
-                    pt.get("x") instanceof Number n ? n.floatValue() : 0.0f,
-                    pt.get("y") instanceof Number n ? n.floatValue() : 0.0f,
-                    pt.get("z") instanceof Number n ? n.floatValue() : 0.0f
-                );
-            } else {
+            try {
+                startPoint = mapper.convertValue(obj, Point.class);
+            } catch (IllegalArgumentException e) {
                 startPoint = new Point(0, 0, 0);
             }
         }
         return startPoint;
     }
 
-    public ArrayList<Point> getTargets() {
+    public List<Point> getTargets() {
         if (targets == null) {
             targets = new ArrayList<>();
             Object obj = config.get("targets");
-            if (obj instanceof List<?> targetList) {
-                for (Object item : targetList) {
-                    if (item instanceof Map<?, ?> pt) {
-                        targets.add(new Point(
-                            pt.get("x") instanceof Number n ? n.floatValue() : 0.0f,
-                            pt.get("y") instanceof Number n ? n.floatValue() : 0.0f,
-                            pt.get("z") instanceof Number n ? n.floatValue() : 0.0f
-                        ));
-                    }
-                }
-            }
+            List<Point> loaded = mapper.convertValue(obj, new TypeReference<List<Point>>() {});
+            if (loaded != null) targets.addAll(loaded);
         }
         return targets;
     }

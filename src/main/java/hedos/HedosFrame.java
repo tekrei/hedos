@@ -8,12 +8,14 @@ import hedos.ga.data.TSPCostCalculator;
 import hedos.ga.data.Point;
 import hedos.utility.MessageKeys;
 import hedos.utility.EventBus;
+import hedos.utility.PathUtils;
 import hedos.graphics.X3DEngine;
-import hedos.ui.GenerateRandomTargets;
 import hedos.ui.PropertiesPanel;
 import hedos.ui.TargetManagementDialog;
+import hedos.ui.GenerateRandomTargetsDialog;
 import hedos.utility.HedosModule;
 import hedos.utility.Messages;
+import hedos.utility.TargetGenerator;
 import hedos.utility.Settings;
 
 import javax.swing.*;
@@ -31,12 +33,13 @@ import com.google.inject.Singleton;
 
 @Singleton
 public class HedosFrame extends JFrame {
-    private final ArrayList<Point> targets = new ArrayList<>();
+    private final List<Point> targets = new ArrayList<>();
     private final PropertiesPanel propertiesPanel;
     private final Messages messages;
     private final GAParameters gaParams;
     private final X3DEngine engine;
     private final Settings settings;
+    private final TargetGenerator targetGenerator;
     private final CostCalculator calculator;
     private final EventBus eventBus;
     private final Provider<GeneticAlgorithm> gaProvider;
@@ -50,13 +53,14 @@ public class HedosFrame extends JFrame {
 
     @Inject
     public HedosFrame(PropertiesPanel propertiesPanel, Messages messages, GAParameters gaParams, 
-                      X3DEngine engine, Settings settings, CostCalculator calculator, 
+                      X3DEngine engine, Settings settings, TargetGenerator targetGenerator, CostCalculator calculator, 
                       EventBus eventBus, Provider<GeneticAlgorithm> gaProvider) {
         this.propertiesPanel = propertiesPanel;
         this.messages = messages;
         this.gaParams = gaParams;
         this.engine = engine;
         this.settings = settings;
+        this.targetGenerator = targetGenerator;
         this.calculator = calculator;
         this.eventBus = eventBus;
         this.gaProvider = gaProvider;
@@ -157,7 +161,7 @@ public class HedosFrame extends JFrame {
 
             menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_GENERATE_TARGETS));
             menuItem.addActionListener(e -> {
-                GenerateRandomTargets dialog = new GenerateRandomTargets(this, eventBus, messages);
+                GenerateRandomTargetsDialog dialog = new GenerateRandomTargetsDialog(this, messages, targetGenerator);
                 dialog.setLocationRelativeTo(this);
                 dialog.setVisible(true);
             });
@@ -214,7 +218,7 @@ public class HedosFrame extends JFrame {
         }
     }
 
-    public void refreshTargets() {
+    private void refreshTargets() {
         // Re-sync application state after settings change
         gaParams.resetToDefaults();
         propertiesPanel.updatePanel();
@@ -227,7 +231,7 @@ public class HedosFrame extends JFrame {
     }
 
     private void initScene() {
-        ArrayList<Point> initialTargets = settings.getTargets();
+        List<Point> initialTargets = settings.getTargets();
 
         for (Point point : initialTargets) {
             addTarget(point);
@@ -237,45 +241,9 @@ public class HedosFrame extends JFrame {
     }
 
     private void drawPath(int[] path) {
-        float[] coordinates = new float[path.length * 3];
-        for (int i = 0; i < path.length; i++) {
-            Point target = targets.get(path[i]);
-            coordinates[i * 3] = target.x();
-            coordinates[i * 3 + 1] = target.y();
-            coordinates[i * 3 + 2] = target.z();
-        }
-
-        // Construct individual line segments for color control
-        int[] index = new int[(path.length - 1) * 3];
-        int[] colorIndex = new int[path.length - 1];
-
-        for (int i = 0; i < path.length; i++) {
-            if (i < path.length - 1) {
-                index[i * 3] = i;
-                index[i * 3 + 1] = i + 1;
-                index[i * 3 + 2] = -1; // End of segment
-                colorIndex[i] = 0;    // Default color
-            }
-        }
-
-        // Detect sharp turns to highlight segments
-        for (int i = 0; i < path.length - 2; i++) {
-            Point p1 = targets.get(path[i]);
-            Point p2 = targets.get(path[i + 1]);
-            Point p3 = targets.get(path[i + 2]);
-
-            float v1x = p2.x() - p1.x();
-            float v1y = p2.y() - p1.y();
-            float v1z = p2.z() - p1.z();
-            float v2x = p3.x() - p2.x();
-            float v2y = p3.y() - p2.y();
-            float v2z = p3.z() - p2.z();
-
-            if (v1x * v2x + v1y * v2y + v1z * v2z < 0) {
-                colorIndex[i] = 1;     // Segment before turn
-                colorIndex[i + 1] = 1; // Segment after turn
-            }
-        }
+        float[] coordinates = PathUtils.getPathCoordinates(path, targets);
+        int[] index = PathUtils.getLineIndices(path.length);
+        int[] colorIndex = PathUtils.detectSharpTurns(path, targets);
         engine.addLineSet(coordinates, index, colorIndex);
     }
 
@@ -406,7 +374,7 @@ public class HedosFrame extends JFrame {
         }
     }
 
-    public ArrayList<Point> getTargets() {
+    public List<Point> getTargets() {
         return targets;
     }
 }
