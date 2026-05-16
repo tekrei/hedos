@@ -1,10 +1,10 @@
 package hedos;
 
-import hedos.ga.GeneticAlgorithm;
+import hedos.ga.GeneticAlgorithmService;
+import hedos.ga.cost.CostCalculator;
+import hedos.ga.cost.TSPCostCalculator;
 import hedos.ga.data.Chromosome;
 import hedos.ga.data.GAParameters;
-import hedos.ga.data.CostCalculator;
-import hedos.ga.data.TSPCostCalculator;
 import hedos.ga.data.Point;
 import hedos.utility.MessageKeys;
 import hedos.utility.EventBus;
@@ -16,6 +16,7 @@ import hedos.ui.GenerateRandomTargetsDialog;
 import hedos.ui.DurationChartPanel;
 import hedos.utility.HedosModule;
 import hedos.utility.Messages;
+import hedos.utility.PersistenceService;
 import hedos.utility.Settings;
 
 import javax.swing.*;
@@ -23,6 +24,9 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import com.google.inject.Guice;
@@ -41,22 +45,22 @@ public class HedosFrame extends JFrame {
     private final Settings settings;
     private final CostCalculator calculator;
     private final EventBus eventBus;
-    private final Provider<GeneticAlgorithm> gaProvider;
+    private final PersistenceService persistenceService;
+    private final GeneticAlgorithmService gaService;
     private final TargetManagementDialog.Factory targetMgmtFactory;
     private final GenerateRandomTargetsDialog.Factory generateTargetsFactory;
 
+    private Chromosome lastBestSolution;
     private JProgressBar progressBar;
     private JLabel statusLabel;
     private JLabel lastLogLabel;
     private DurationChartPanel chartPanel;
     private JMenuBar menu;
 
-    public record ProgressData(int current, int total, float bestCost, long duration, String message) {}
-
     @Inject
     public HedosFrame(PropertiesPanel propertiesPanel, Messages messages, GAParameters gaParams, 
-                      X3DEngine engine, Settings settings, CostCalculator calculator, 
-                      EventBus eventBus, Provider<GeneticAlgorithm> gaProvider,
+                      X3DEngine engine, Settings settings, PersistenceService persistenceService,
+                      CostCalculator calculator, EventBus eventBus, GeneticAlgorithmService gaService,
                       TargetManagementDialog.Factory targetMgmtFactory,
                       GenerateRandomTargetsDialog.Factory generateTargetsFactory) {
         this.propertiesPanel = propertiesPanel;
@@ -64,9 +68,10 @@ public class HedosFrame extends JFrame {
         this.gaParams = gaParams;
         this.engine = engine;
         this.settings = settings;
+        this.persistenceService = persistenceService;
         this.calculator = calculator;
         this.eventBus = eventBus;
-        this.gaProvider = gaProvider;
+        this.gaService = gaService;
         this.targetMgmtFactory = targetMgmtFactory;
         this.generateTargetsFactory = generateTargetsFactory;
     }
@@ -141,16 +146,21 @@ public class HedosFrame extends JFrame {
             menu = new JMenuBar();
 
             JMenu fileMenu = new JMenu(messages.getString(MessageKeys.HEDOS_FRAME_FILE));
-            JMenuItem menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_SAVE_SETTINGS));
-            menuItem.addActionListener(e -> saveFile());
+            JMenuItem menuItem;
+            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_LOAD_SETTINGS));
+            menuItem.addActionListener(e -> persistenceService.loadSettings(this));
             fileMenu.add(menuItem);
 
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_LOAD_SETTINGS));
-            menuItem.addActionListener(e -> loadFile());
+            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_SAVE_RESULTS));
+            menuItem.addActionListener(e -> persistenceService.saveResults(this, lastBestSolution, chartPanel));
+            fileMenu.add(menuItem);
+
+            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_SAVE_CHART));
+            menuItem.addActionListener(e -> persistenceService.saveChart(this, chartPanel));
             fileMenu.add(menuItem);
 
             menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_SAVE_SETTINGS_AS));
-            menuItem.addActionListener(e -> saveFile());
+            menuItem.addActionListener(e -> persistenceService.saveSettings(this, gaParams));
             fileMenu.add(menuItem);
 
             menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_EXIT));
@@ -219,6 +229,34 @@ public class HedosFrame extends JFrame {
         }
     }
 
+    private void saveResults() {
+        if (lastBestSolution == null) {
+            JOptionPane.showMessageDialog(this, "No solution to save. Please run a calculation first.", "No Data", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try (PrintWriter writer = new PrintWriter(new FileWriter(fileChooser.getSelectedFile()))) {
+                writer.println("HeDoS Genetic Algorithm Report");
+                writer.println("==============================");
+                writer.println("Best Solution found: " + lastBestSolution.toString());
+                chartPanel.exportCSV(writer);
+                log("Results saved to: " + fileChooser.getSelectedFile().getName());
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error saving results: " + e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void saveChart() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setSelectedFile(new File("ga_performance.png"));
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            chartPanel.saveAsImage(fileChooser.getSelectedFile());
+        }
+    }
+
     private void saveFile() {
         JFileChooser fileChooser = new JFileChooser();
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -277,58 +315,28 @@ public class HedosFrame extends JFrame {
         chartPanel.clear();
         propertiesPanel.updateGPParameter();
         
-        if (calculator instanceof TSPCostCalculator tspCalc) {
-            tspCalc.init(targets);
-        }
-        GeneticAlgorithm ga = gaProvider.get();
-        ga.setCalculator(calculator);
-
         log(String.format(messages.getString(MessageKeys.LOG_CALC_START), 
             gaParams.getGenerationCount(), gaParams.getPopulationSize(), gaParams.getMutationProbability()));
 
-        // Using SwingWorker to keep the UI responsive
-        SwingWorker<Chromosome, HedosFrame.ProgressData> worker = new SwingWorker<Chromosome, HedosFrame.ProgressData>() {
-            @Override
-            protected Chromosome doInBackground() {
-                ga.setProgressListener((current, total, bestCost, duration) -> {
-                    String msg = (current % 10 == 0 || current == total) ? 
-                        String.format("Generation %d (%d ms): Best Fitness = %.2f", current, duration, bestCost) : null;
-                    publish(new HedosFrame.ProgressData(current, total, bestCost, duration, msg));
-                });
-                return ga.run(targets);
-            }
+        gaService.calculate(targets, update -> {
+            String msg = (update.current() % 10 == 0 || update.current() == update.total()) ? 
+                String.format("Generation %d (%d ms): Best Fitness = %.2f", update.current(), update.duration(), update.bestCost()) : null;
+            
+            if (msg != null) log(msg);
+            chartPanel.addData(update.duration(), update.lsDuration(), update.bestCost());
 
-            @Override
-            protected void process(List<HedosFrame.ProgressData> chunks) {
-                HedosFrame.ProgressData latest = chunks.get(chunks.size() - 1);
-                
-                for (HedosFrame.ProgressData data : chunks) {
-                    if (data.message() != null) log(data.message());
-                    chartPanel.addData(data.duration(), data.bestCost());
-                }
-
-                int percent = (int) (((float) latest.current() / latest.total()) * 100);
-                progressBar.setValue(percent);
-                statusLabel.setText(String.format("%s: %d/%d | %s: %.2f", 
-                    messages.getString(MessageKeys.STATUS_BAR_GENERATION), latest.current(), latest.total(),
-                    messages.getString(MessageKeys.STATUS_BAR_BEST_FITNESS), latest.bestCost()));
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    Chromosome best = this.get();
-                    drawPath(best.genes());
-                    log(messages.getString(MessageKeys.LOG_CALC_COMPLETE) + best.cost());
-                    progressBar.setValue(0);
-                    statusLabel.setText(messages.getString(MessageKeys.STATUS_BAR_READY));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        
-        worker.execute();
+            int percent = (int) (((float) update.current() / update.total()) * 100);
+            progressBar.setValue(percent);
+            statusLabel.setText(String.format("%s: %d/%d | %s: %.2f", 
+                messages.getString(MessageKeys.STATUS_BAR_GENERATION), update.current(), update.total(),
+                messages.getString(MessageKeys.STATUS_BAR_BEST_FITNESS), update.bestCost()));
+        }, best -> {
+            this.lastBestSolution = best;
+            drawPath(best.genes());
+            log(messages.getString(MessageKeys.LOG_CALC_COMPLETE) + best.cost());
+            progressBar.setValue(0);
+            statusLabel.setText(messages.getString(MessageKeys.STATUS_BAR_READY));
+        });
     }
 
     private void log(String message) {
@@ -354,32 +362,14 @@ public class HedosFrame extends JFrame {
             int trialCount = Integer.parseInt(input.trim());
             log(String.format(messages.getString(MessageKeys.LOG_TRIALS_START), trialCount));
             
-            new SwingWorker<Void, String>() {
-                @Override
-                protected Void doInBackground() {
-                    for (int i = 0; i < trialCount; i++) {
-                        publish(String.format(messages.getString(MessageKeys.LOG_TRIAL_START), i + 1, trialCount));
-                        if (calculator instanceof TSPCostCalculator tspCalc) {
-                            tspCalc.init(targets);
-                        }
-                        GeneticAlgorithm ga = gaProvider.get();
-                        ga.setCalculator(calculator);
-                        Chromosome best = ga.run(targets);
-                        publish(String.format(messages.getString(MessageKeys.LOG_TRIAL_FINISH), i + 1, best.cost()));
-                    }
-                    return null;
+            gaService.runMultipleTests(targets, trialCount, event -> {
+                if (!event.finished()) {
+                    log(String.format(messages.getString(MessageKeys.LOG_TRIAL_START), event.trial(), event.totalTrials()));
+                } else {
+                    log(String.format(messages.getString(MessageKeys.LOG_TRIAL_FINISH), 
+                        event.trial(), event.cost()));
                 }
-
-                @Override
-                protected void process(List<String> chunks) {
-                    for (String msg : chunks) log(msg);
-                }
-
-                @Override
-                protected void done() {
-                    log(messages.getString(MessageKeys.LOG_TRIALS_COMPLETE));
-                }
-            }.execute();
+            }, () -> log(messages.getString(MessageKeys.LOG_TRIALS_COMPLETE)));
         } catch (NumberFormatException e) {
             log(messages.getString(MessageKeys.LOG_INVALID_COUNT));
         }

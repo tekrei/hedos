@@ -22,12 +22,15 @@ public final class MessageKeys {
     public static final String PARAM_SEL_TYPE = "selectionType";
     public static final String PARAM_TOUR_SIZE = "tournamentSize";
     public static final String PARAM_TURN_PENALTY = "turnPenaltyFactor";
+    public static final String PARAM_EVAL_TIMEOUT = "evaluationTimeout";
 
     // --- Localization Keys (messages.properties) ---
     public static final String HEDOS_FRAME_FILE = "HedosFrame.File";
     public static final String HEDOS_FRAME_SAVE_SETTINGS = "HedosFrame.SaveSettings";
     public static final String HEDOS_FRAME_LOAD_SETTINGS = "HedosFrame.LoadSettings";
     public static final String HEDOS_FRAME_SAVE_SETTINGS_AS = "HedosFrame.SaveSettingsAs";
+    public static final String HEDOS_FRAME_SAVE_RESULTS = "HedosFrame.SaveResults";
+    public static final String HEDOS_FRAME_SAVE_CHART = "HedosFrame.SaveChart";
     public static final String HEDOS_FRAME_EXIT = "HedosFrame.Exit";
     public static final String HEDOS_FRAME_SETTINGS = "HedosFrame.Settings";
     public static final String HEDOS_FRAME_MULTIPLE_TEST = "HedosFrame.MultipleTest";

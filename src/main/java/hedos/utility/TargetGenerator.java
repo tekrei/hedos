@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.random.RandomGenerator;
-import java.util.random.RandomGeneratorFactory;
 
 /**
  * Responsible for generating random target datasets in YAML format.
@@ -17,7 +16,7 @@ import java.util.random.RandomGeneratorFactory;
 @Singleton
 public class TargetGenerator {
     private final ObjectMapper mapper = new YAMLMapper();
-    private final RandomGenerator generator = RandomGeneratorFactory.getDefault().create();
+    private final RandomGenerator generator = RandomGenerator.getDefault();
     private final EventBus eventBus;
 
     @Inject

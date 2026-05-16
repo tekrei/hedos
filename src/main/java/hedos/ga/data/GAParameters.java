@@ -5,7 +5,7 @@ import hedos.utility.MessageKeys;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import java.util.Random;
+import java.util.random.RandomGenerator;
 
 @Singleton
 public class GAParameters {
@@ -66,8 +66,26 @@ public class GAParameters {
         }
     }
 
+    public enum LocalOptimizationType {
+        NONE("GA.LocalOpt.None"),
+        TWO_OPT("GA.LocalOpt.2Opt"),
+        THREE_OPT("GA.LocalOpt.3Opt"),
+        LIMITED_THREE_OPT("GA.LocalOpt.Limited3Opt"),
+        PARTITIONED_2_OPT("GA.LocalOpt.Partitioned2Opt"),
+        LIN_KERNIGHAN("GA.LocalOpt.LinKernighan"),
+        MULTI_START_LIN_KERNIGHAN("GA.LocalOpt.MultiStartLK");
+
+        private final String nameKey;
+        LocalOptimizationType(String nameKey) { this.nameKey = nameKey; }
+        public String getNameKey() { return nameKey; }
+        public static LocalOptimizationType fromKey(String key) {
+            for (LocalOptimizationType t : values()) if (t.nameKey.equals(key)) return t;
+            return NONE;
+        }
+    }
+
     private final Settings settings;
-    private final Random generator;
+    private final RandomGenerator generator;
     private int generationCount;
     private int populationSize;
     private float mutationProbability;
@@ -76,6 +94,7 @@ public class GAParameters {
     private MutationType mutationType;
     private CrossoverType crossoverType;
     private SelectionType selectionType;
+    private LocalOptimizationType localOptimizationType;
     private int tournamentSize;
     private float turnPenaltyFactor;
     private long evaluationTimeout; // Timeout in milliseconds
@@ -83,7 +102,7 @@ public class GAParameters {
     @Inject
     public GAParameters(Settings settings) {
         this.settings = settings;
-        generator = new Random();
+        generator = RandomGenerator.getDefault();
         load(settings);
     }
 
@@ -97,10 +116,11 @@ public class GAParameters {
         this.mutationType = MutationType.fromKey(settings.getString(MessageKeys.PARAM_MUT_TYPE));
         this.crossoverType = CrossoverType.fromKey(settings.getString(MessageKeys.PARAM_CROSS_TYPE));
         this.selectionType = SelectionType.fromKey(settings.getString(MessageKeys.PARAM_SEL_TYPE));
+        this.localOptimizationType = LocalOptimizationType.fromKey(settings.getString("localOptimizationType"));
 
         this.tournamentSize = settings.getInt(MessageKeys.PARAM_TOUR_SIZE, 3);
         this.turnPenaltyFactor = settings.getFloat(MessageKeys.PARAM_TURN_PENALTY, 50.0f);
-        this.evaluationTimeout = settings.getInt("evaluationTimeout", 5000);
+        this.evaluationTimeout = settings.getInt(MessageKeys.PARAM_EVAL_TIMEOUT, 5000);
     }
 
     public void saveToSettings() {
@@ -109,12 +129,13 @@ public class GAParameters {
         settings.set(MessageKeys.PARAM_MUT_PROB, mutationProbability);
         settings.set(MessageKeys.PARAM_ELITISM, elitism);
         settings.set(MessageKeys.PARAM_CROSS_PROB, crossoverProbability);
+        settings.set("localOptimizationType", localOptimizationType.getNameKey());
         settings.set(MessageKeys.PARAM_MUT_TYPE, mutationType.getNameKey());
         settings.set(MessageKeys.PARAM_CROSS_TYPE, crossoverType.getNameKey());
         settings.set(MessageKeys.PARAM_SEL_TYPE, selectionType.getNameKey());
         settings.set(MessageKeys.PARAM_TOUR_SIZE, tournamentSize);
         settings.set(MessageKeys.PARAM_TURN_PENALTY, turnPenaltyFactor);
-        settings.set("evaluationTimeout", evaluationTimeout);
+        settings.set(MessageKeys.PARAM_EVAL_TIMEOUT, evaluationTimeout);
     }
 
     public void resetToDefaults() {
@@ -146,6 +167,9 @@ public class GAParameters {
 
     public SelectionType getSelectionType() { return selectionType; }
     public void setSelectionType(SelectionType selectionType) { this.selectionType = selectionType; }
+
+    public LocalOptimizationType getLocalOptimizationType() { return localOptimizationType; }
+    public void setLocalOptimizationType(LocalOptimizationType type) { this.localOptimizationType = type; }
 
     public int getTournamentSize() { return tournamentSize; }
     public void setTournamentSize(int tournamentSize) { this.tournamentSize = tournamentSize; }

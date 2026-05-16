@@ -1,9 +1,10 @@
 package hedos.ga;
 
 import com.google.inject.Singleton;
+
+import hedos.ga.cost.CostCalculator;
 import hedos.ga.data.Chromosome;
 import hedos.ga.data.GAParameters;
-import hedos.ga.data.CostCalculator;
 
 import java.time.Duration;
 import java.time.Instant;

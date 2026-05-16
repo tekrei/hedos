@@ -1,4 +1,4 @@
-package hedos.ga.data;
+package hedos.ga.cost;
 
 public interface CostCalculator {
     float calculateCost(int[] genes);

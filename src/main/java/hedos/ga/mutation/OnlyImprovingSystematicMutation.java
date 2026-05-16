@@ -1,7 +1,7 @@
 package hedos.ga.mutation;
 
+import hedos.ga.cost.CostCalculator;
 import hedos.ga.data.Chromosome;
-import hedos.ga.data.CostCalculator;
 import hedos.ga.data.GAParameters;
 import com.google.inject.Inject;
 import hedos.utility.MessageKeys;

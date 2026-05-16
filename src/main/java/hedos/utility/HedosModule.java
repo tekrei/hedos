@@ -4,8 +4,13 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Scopes;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.multibindings.MapBinder;
-import hedos.ga.ChromosomeFactory;
+
+import hedos.ga.GeneticAlgorithmService;
 import hedos.ga.PopulationEvaluator;
+import hedos.ga.cost.CostCalculator;
+import hedos.ga.cost.TSPCostCalculator;
+import hedos.ga.lso.*;
+import hedos.utility.PersistenceService;
 import hedos.ga.crossover.*;
 import hedos.ga.data.*;
 import hedos.ga.mutation.*;
@@ -24,9 +29,12 @@ public class HedosModule extends AbstractModule {
         bind(Messages.class).in(Scopes.SINGLETON);
         bind(Settings.class).in(Scopes.SINGLETON);
         bind(GAParameters.class).in(Scopes.SINGLETON);
+        bind(LocalSearchFactory.class).in(Scopes.SINGLETON);
         bind(TargetGenerator.class).in(Scopes.SINGLETON);
         bind(ChromosomeFactory.class).in(Scopes.SINGLETON);
         bind(PopulationEvaluator.class).in(Scopes.SINGLETON);
+        bind(PersistenceService.class).in(Scopes.SINGLETON);
+        bind(GeneticAlgorithmService.class).in(Scopes.SINGLETON);
 
         // Bind CostCalculator to its implementation
         bind(CostCalculator.class).to(TSPCostCalculator.class).in(Scopes.SINGLETON);
@@ -39,6 +47,13 @@ public class HedosModule extends AbstractModule {
         crossoverBinder.addBinding(GAParameters.CrossoverType.UNIFORM).to(UniformCrossover.class);
         crossoverBinder.addBinding(GAParameters.CrossoverType.ORDERED).to(OrderedCrossover.class);
         crossoverBinder.addBinding(GAParameters.CrossoverType.VECTORIZED_UNIFORM).to(VectorizedUniformCrossover.class);
+
+        // Local Search MapBinder
+        MapBinder<GAParameters.LocalOptimizationType, LocalSearchOptimizer> lsoBinder = 
+            MapBinder.newMapBinder(binder(), GAParameters.LocalOptimizationType.class, LocalSearchOptimizer.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.TWO_OPT).to(TwoOptOptimization.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.LIN_KERNIGHAN).to(LinKernighanOptimization.class);
+        lsoBinder.addBinding(GAParameters.LocalOptimizationType.MULTI_START_LIN_KERNIGHAN).to(MultiStartLocalSearch.class);
 
         // Configure Mutation MapBinder for MutationFactory
         MapBinder<GAParameters.MutationType, Mutation> mutationBinder = 

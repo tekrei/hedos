@@ -1,9 +1,10 @@
-package hedos.ga.data;
+package hedos.ga.cost;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Arrays;
-import java.util.concurrent.ConcurrentHashMap;
+import hedos.ga.data.Point;
+import hedos.ga.data.GAParameters;
+import java.util.Comparator;
 import java.util.stream.IntStream;
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorMask;
@@ -20,20 +21,8 @@ public class TSPCostCalculator implements CostCalculator {
     private List<Point> targets;
     private float[] distanceMatrix;
     private float[] targetXs, targetYs, targetZs;
+    private int[][] neighborLists;
     private final GAParameters gaParams;
-    private final Map<GeneSequence, Float> costCache = new ConcurrentHashMap<>();
-    private final Map<GeneSequence, Float> turnCache = new ConcurrentHashMap<>();
-
-    private record GeneSequence(int[] genes) {
-        @Override
-        public boolean equals(Object o) {
-            return o instanceof GeneSequence other && Arrays.equals(genes, other.genes);
-        }
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(genes);
-        }
-    }
 
     @Inject
     public TSPCostCalculator(GAParameters gaParams) {
@@ -55,12 +44,11 @@ public class TSPCostCalculator implements CostCalculator {
             targetZs[i] = p.z();
         }
 
-        costCache.clear();
-        turnCache.clear();
-        
         long start = System.nanoTime();
         precomputeDistances(n);
-        logger.info("Distance matrix ({}x{}) precomputation took {} ms", n, n, (System.nanoTime() - start) / 1_000_000.0);
+        precomputeNeighbors(n, 20);
+        double duration = (System.nanoTime() - start) / 1_000_000.0;
+        logger.info("Distance matrix and neighbor lists ({}x{}) precomputation took {} ms", n, n, duration);
     }
 
     private void precomputeDistances(int n) {
@@ -92,7 +80,7 @@ public class TSPCostCalculator implements CostCalculator {
 
     @Override
     public float calculateCost(int[] genes) {
-        return costCache.computeIfAbsent(new GeneSequence(genes), k -> computeActualCost(k.genes()));
+        return computeActualCost(genes);
     }
 
     private float computeActualCost(int[] genes) {
@@ -112,9 +100,24 @@ public class TSPCostCalculator implements CostCalculator {
         return totalDistance + (turnPenalty * penaltyFactor);
     }
 
+    private void precomputeNeighbors(int n, int k) {
+        int limit = Math.min(n - 1, k);
+        neighborLists = new int[n][limit];
+        IntStream.range(0, n).parallel().forEach(i -> {
+            final int current = i;
+            neighborLists[i] = IntStream.range(0, n)
+                    .filter(j -> j != current)
+                    .boxed()
+                    .sorted(Comparator.comparingDouble(j -> distanceMatrix[current * n + j]))
+                    .limit(limit)
+                    .mapToInt(Integer::intValue)
+                    .toArray();
+        });
+    }
+
     @Override
     public float calculateTurnCost(int[] genes) {
-        return turnCache.computeIfAbsent(new GeneSequence(genes), k -> computeActualTurnCost(k.genes()));
+        return computeActualTurnCost(genes);
     }
 
     private float computeActualTurnCost(int[] genes) {
@@ -166,11 +169,11 @@ public class TSPCostCalculator implements CostCalculator {
         for (; i < n - 2; i++) {
             float v1x = targetXs[genes[i + 1]] - targetXs[genes[i]];
             float v1y = targetYs[genes[i + 1]] - targetYs[genes[i]];
-            float v1z = targetXs[genes[i + 1]] - targetXs[genes[i]];
+            float v1z = targetZs[genes[i + 1]] - targetZs[genes[i]];
 
             float v2x = targetXs[genes[i + 2]] - targetXs[genes[i + 1]];
             float v2y = targetYs[genes[i + 2]] - targetYs[genes[i + 1]];
-            float v2z = targetXs[genes[i + 2]] - targetXs[genes[i + 1]];
+            float v2z = targetZs[genes[i + 2]] - targetZs[genes[i + 1]];
 
             float dot = v1x * v2x + v1y * v2y + v1z * v2z;
             float mag1 = (float) Math.sqrt(v1x * v1x + v1y * v1y + v1z * v1z);
@@ -182,5 +185,13 @@ public class TSPCostCalculator implements CostCalculator {
             }
         }
         return totalAngle;
+    }
+
+    public float[] getDistanceMatrix() {
+        return distanceMatrix;
+    }
+
+    public int[][] getNeighborLists() {
+        return neighborLists;
     }
 }

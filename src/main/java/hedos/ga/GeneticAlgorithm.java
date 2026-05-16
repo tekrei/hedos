@@ -1,13 +1,17 @@
 package hedos.ga;
 
+import hedos.ga.cost.CostCalculator;
+import hedos.ga.cost.TSPCostCalculator;
 import hedos.ga.crossover.Crossover;
 import hedos.ga.crossover.CrossoverFactory;
 import hedos.ga.data.Chromosome;
+import hedos.ga.data.ChromosomeFactory;
 import hedos.ga.data.GAParameters;
-import hedos.ga.data.CostCalculator;
 import hedos.ga.data.Point;
 import hedos.ga.mutation.Mutation;
 import hedos.ga.mutation.MutationFactory;
+import hedos.ga.lso.LocalSearchFactory;
+import hedos.ga.lso.LocalSearchOptimizer;
 import hedos.ga.selection.Selection;
 import hedos.ga.selection.SelectionFactory;
 
@@ -27,6 +31,7 @@ public class GeneticAlgorithm {
     private final MutationFactory mutationFactory;
     private final SelectionFactory selectionFactory;
     private final ChromosomeFactory chromosomeFactory;
+    private final LocalSearchFactory localSearchFactory;
     private final PopulationEvaluator evaluator;
 
     private CostCalculator calculator;
@@ -35,7 +40,7 @@ public class GeneticAlgorithm {
 
     @FunctionalInterface
     public interface ProgressListener {
-        void onProgress(int current, int total, float bestCost, long durationMs);
+        void onProgress(int current, int total, float bestCost, long durationMs, long lsDurationMs);
     }
 
     @Inject
@@ -44,12 +49,14 @@ public class GeneticAlgorithm {
                             MutationFactory mutationFactory,
                             SelectionFactory selectionFactory,
                             ChromosomeFactory chromosomeFactory,
+                            LocalSearchFactory localSearchFactory,
                             PopulationEvaluator evaluator) {
         this.gaParameters = gaParameters;
         this.crossoverFactory = crossoverFactory;
         this.mutationFactory = mutationFactory;
         this.selectionFactory = selectionFactory;
         this.chromosomeFactory = chromosomeFactory;
+        this.localSearchFactory = localSearchFactory;
         this.evaluator = evaluator;
     }
 
@@ -103,12 +110,32 @@ public class GeneticAlgorithm {
 
             evaluator.evaluate(population, calculator, gaParameters);
 
+            // Hybrid GA: Apply Selected Local Search to the best individual periodically
+            long lsDuration = 0;
+            if (generation % 5 == 0 && calculator instanceof TSPCostCalculator tsp) {
+                long lsStart = System.nanoTime();
+                int[] genes = population[0].genes();
+                float[] dist = tsp.getDistanceMatrix();
+                int n = targets.size();
+
+                LocalSearchOptimizer lso = localSearchFactory.get(gaParameters.getLocalOptimizationType());
+                if (lso != null) {
+                    int[] optimizedGenes = genes.clone();
+                    lso.optimize(optimizedGenes, dist, tsp.getNeighborLists(), n);
+                    population[0] = new Chromosome(optimizedGenes);
+                }
+                
+                population[0].setEvaluated(false);
+                evaluator.evaluate(new Chromosome[]{population[0]}, calculator, gaParameters);
+                lsDuration = (System.nanoTime() - lsStart) / 1_000_000;
+            }
+
             Arrays.sort(population);
             elitism();
             long genDuration = (System.nanoTime() - genStartTime) / 1_000_000;
 
             if (progressListener != null) {
-                progressListener.onProgress(generation, gaParameters.getGenerationCount(), best.cost(), genDuration);
+                progressListener.onProgress(generation, gaParameters.getGenerationCount(), best.cost(), genDuration, lsDuration);
             }
         }
         logger.info("Genetic Algorithm finished {} generations in {} ms", generation, (System.currentTimeMillis() - startTime));

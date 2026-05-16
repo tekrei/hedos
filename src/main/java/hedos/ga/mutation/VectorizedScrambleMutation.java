@@ -1,8 +1,9 @@
 package hedos.ga.mutation;
 
 import com.google.inject.Inject;
-import hedos.ga.ChromosomeFactory;
+
 import hedos.ga.data.Chromosome;
+import hedos.ga.data.ChromosomeFactory;
 import hedos.ga.data.GAParameters;
 import hedos.utility.MessageKeys;
 

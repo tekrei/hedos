@@ -1,8 +1,9 @@
 package hedos.ga.crossover;
 
 import com.google.inject.Inject;
-import hedos.ga.ChromosomeFactory;
+
 import hedos.ga.data.Chromosome;
+import hedos.ga.data.ChromosomeFactory;
 import hedos.utility.MessageKeys;
 
 import java.util.random.RandomGenerator;

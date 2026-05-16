@@ -49,6 +49,7 @@ public class PropertiesPanel extends JPanel {
     private JComboBox<GAParameters.CrossoverType> crossoverTypeCombo = null;
     private JComboBox<GAParameters.MutationType> mutationTypeCombo = null;
     private JComboBox<GAParameters.SelectionType> selectionTypeCombo = null;
+    private JComboBox<GAParameters.LocalOptimizationType> localOptTypeCombo = null;
     private JButton btnTravel = null;
     private JButton btnCalculate = null;
     private JButton btnClearSolution = null;
@@ -106,6 +107,11 @@ public class PropertiesPanel extends JPanel {
         typeGbc.gridy = currentGaGridY++;
         typeGbc.insets = new Insets(0, 5, 5, 5);
         gaSettingsPanel.add(getMutationTypeCombo(), typeGbc);
+
+        typeGbc.gridy = currentGaGridY++;
+        gaSettingsPanel.add(new JLabel("Local Optimization"), typeGbc);
+        typeGbc.gridy = currentGaGridY++;
+        gaSettingsPanel.add(getLocalOptTypeCombo(), typeGbc);
 
         typeGbc.gridy = currentGaGridY++;
         typeGbc.insets = new Insets(5, 5, 0, 5);
@@ -303,6 +309,23 @@ public class PropertiesPanel extends JPanel {
         return mutationTypeCombo;
     }
 
+    private JComboBox<GAParameters.LocalOptimizationType> getLocalOptTypeCombo() {
+        if (localOptTypeCombo == null) {
+            localOptTypeCombo = new JComboBox<>(GAParameters.LocalOptimizationType.values());
+            localOptTypeCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value instanceof GAParameters.LocalOptimizationType type) {
+                        setText(messages.getString(type.getNameKey()));
+                    }
+                    return this;
+                }
+            });
+        }
+        return localOptTypeCombo;
+    }
+
     private JComboBox<GAParameters.SelectionType> getSelectionTypeCombo() {
         if (selectionTypeCombo == null) {
             selectionTypeCombo = new JComboBox<>(GAParameters.SelectionType.values());
@@ -413,6 +436,7 @@ public class PropertiesPanel extends JPanel {
 
         gaParameters.setCrossoverType((GAParameters.CrossoverType) crossoverTypeCombo.getSelectedItem());
         gaParameters.setMutationType((GAParameters.MutationType) mutationTypeCombo.getSelectedItem());
+        gaParameters.setLocalOptimizationType((GAParameters.LocalOptimizationType) localOptTypeCombo.getSelectedItem());
         gaParameters.setSelectionType((GAParameters.SelectionType) selectionTypeCombo.getSelectedItem());
         gaParameters.setElitism(elitismCheckBox.isSelected());
     }
@@ -438,6 +462,7 @@ public class PropertiesPanel extends JPanel {
 
         mutationTypeCombo.setSelectedItem(gaParameters.getMutationType());
         crossoverTypeCombo.setSelectedItem(gaParameters.getCrossoverType());
+        localOptTypeCombo.setSelectedItem(gaParameters.getLocalOptimizationType());
         selectionTypeCombo.setSelectedItem(gaParameters.getSelectionType());
         elitismCheckBox.setSelected(gaParameters.isElitism());
         this.updateUI();

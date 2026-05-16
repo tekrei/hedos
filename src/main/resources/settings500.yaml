@@ -1,10 +1,10 @@
 # HeDoS Global Configuration (500 Targets)
-populationSize: 50
-generationCount: 100
+populationSize: 500
+generationCount: 1000
 crossoverProbability: 0.8
-mutationProbability: 0.05
+mutationProbability: 0.1
 turnPenaltyFactor: 50.0
-tournamentSize: 3
+tournamentSize: 10
 elitism: true
 selectionType: GA.Selection.Tournament
 mutationType: GA.Mutation.Random

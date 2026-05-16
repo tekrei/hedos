@@ -1,4 +1,4 @@
-package hedos.ga;
+package hedos.ga.data;
 
 import com.google.inject.Singleton;
 import jdk.incubator.vector.IntVector;
@@ -8,14 +8,13 @@ import jdk.incubator.vector.VectorShuffle;
 import jdk.incubator.vector.VectorSpecies;
 
 import java.util.random.RandomGenerator;
-import java.util.random.RandomGeneratorFactory;
 
 /**
  * Factory for creating and repairing Chromosome gene sequences.
  */
 @Singleton
 public class ChromosomeFactory {
-    private final RandomGenerator randomGenerator = RandomGeneratorFactory.getDefault().create();
+    private final RandomGenerator randomGenerator = RandomGenerator.getDefault();
 
     public int[] createRandomGenes(int n) {
         int[] genes = new int[n];
