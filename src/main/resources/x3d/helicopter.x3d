@@ -3,16 +3,18 @@
 <Scene>
 <ProtoDeclare name='HelixProto'>
 <ProtoBody>
-<Transform DEF='dad_GROUND'
+<Transform DEF='dad_GROUND' rotation='1 0 0 -1.5708'
 >
 
+ <TimeSensor DEF='RotorSpinTimer' cycleInterval='1' loop='true'/>
+ <OrientationInterpolator DEF='MainRotorSpin' key='0 0.5 1' keyValue='0 0 1 0, 0 0 1 3.14159, 0 0 1 6.28318'/>
+ 
  <Group DEF='GROUND'>
   <Transform DEF='dad_Import_Base'>
    <!-- File produced with RcCad V 1.4.7 -->
    <Group DEF='Import_Base'>
-    <Transform DEF='dad_Group1'
-     translation='0 0 15'
-     rotation='-.58 .576 .576 2.094'>
+    <!-- Main Rotor Group -->
+    <Transform DEF='dad_Group1' translation='0 0 15'>
      <!--  WingLeft -->
      <Group DEF='Group1'>
       <NavigationInfo DEF='NavInfo1'
@@ -25,6 +27,7 @@
        type='"WALK"
        "ANY"'
       />
+      <Transform DEF='MainRotorTransform' center='11.74 0 5.09'>
       <Transform DEF='dad_IndexedFaceSet1'>
        <!--  WingRight -->
        <Shape DEF='IndexedFaceSet1'>
@@ -197,6 +200,7 @@
         </IndexedFaceSet>
        </Shape>
       </Transform>
+      </Transform> <!-- Moved MainRotorTransform end here to exclude IndexedFaceSet3 -->
       <Transform DEF='dad_IndexedFaceSet3'>
        <!--  WingExtentRight -->
        <Shape DEF='IndexedFaceSet3'>
@@ -1598,92 +1602,6 @@
            12.40242 .11571 2.07807
            12.40242 .15926 2.22396
            12.40242 .18722 2.4078
-          '
-         />
-        </IndexedFaceSet>
-       </Shape>
-      </Transform>
-      <Transform DEF='dad_IndexedFaceSet8'>
-       <!--  Equipment -->
-       <Shape DEF='IndexedFaceSet8'>
-        <Appearance>
-         <Material DEF='material8_mat'
-          ambientIntensity='0.200'
-          shininess='0.200'
-          diffuseColor='.23529 .45882 .65882'
-         />
-        </Appearance>
-        <IndexedFaceSet
-         solid='false'
-         creaseAngle='3.142'
-         coordIndex='
-           0 1 2 -1 
-           3 4 1 -1 
-           5 6 4 -1 
-           7 8 6 -1 
-           9 10 8 -1 
-           11 12 10 -1 
-           13 14 12 -1 
-           15 16 14 -1 
-           17 18 16 -1 
-           19 20 18 -1 
-           21 22 20 -1 
-           23 24 22 -1 
-           25 26 24 -1 
-           27 28 26 -1 
-           29 30 28 -1 
-           31 2 30 -1 
-           0 3 1 -1 
-           3 5 4 -1 
-           5 7 6 -1 
-           7 9 8 -1 
-           9 11 10 -1 
-           11 13 12 -1 
-           13 15 14 -1 
-           15 17 16 -1 
-           17 19 18 -1 
-           19 21 20 -1 
-           21 23 22 -1 
-           23 25 24 -1 
-           25 27 26 -1 
-           27 29 28 -1 
-           29 31 30 -1 
-           31 0 2 -1 
-         '>
-         <Coordinate
-          point='
-           26.59287 0 3.49415
-           31.65113 .02574 8.01184
-           31.60931 0 8.01184
-           26.82647 .14375 3.49415
-           31.69296 .03218 8.01184
-           27.06006 .17969 3.49415
-           31.73479 .03861 8.01184
-           27.29366 .21563 3.49415
-           31.77662 .04022 8.01184
-           27.52725 .22461 3.49415
-           31.86027 .04183 8.01184
-           27.99444 .23359 3.49415
-           32.11124 .03861 8.01184
-           29.396 .21563 3.49415
-           32.44586 0 8.01184
-           31.26476 0 3.49415
-           32.44586 0 8.01184
-           31.26476 0 3.49415
-           32.11124 -.03861 8.01184
-           29.396 -.21563 3.49415
-           31.86027 -.04183 8.01184
-           27.99444 -.23359 3.49415
-           31.77662 -.04022 8.01184
-           27.52725 -.22461 3.49415
-           31.73479 -.03861 8.01184
-           27.29366 -.21563 3.49415
-           31.69296 -.03218 8.01184
-           27.06006 -.17969 3.49415
-           31.65113 -.02574 8.01184
-           26.82647 -.14375 3.49415
-           31.60931 0 8.01184
-           26.59287 0 3.49415
           '
          />
         </IndexedFaceSet>
@@ -3416,6 +3334,10 @@
    </Group>
   </Transform>
  </Group>
+
+ <ROUTE fromNode='RotorSpinTimer' fromField='fraction_changed' toNode='MainRotorSpin' toField='set_fraction'/>
+ <ROUTE fromNode='MainRotorSpin' fromField='value_changed' toNode='MainRotorTransform' toField='set_rotation'/>
+
 </Transform>
 </ProtoBody>
 </ProtoDeclare>

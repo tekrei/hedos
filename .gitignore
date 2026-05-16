@@ -206,5 +206,6 @@ target/
 # Ignore all local history of files
 .history
 .ionide
+repo
 
 # End of https://www.toptal.com/developers/gitignore/api/eclipse,java,java-web,intellij,visualstudiocode

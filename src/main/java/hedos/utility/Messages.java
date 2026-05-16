@@ -1,89 +1,72 @@
 package hedos.utility;
 
-import java.lang.reflect.Field;
 import java.util.MissingResourceException;
+import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.ListResourceBundle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.google.inject.Singleton;
 
+@Singleton
 public class Messages {
-    private static Messages _instance = null;
+    private static final Logger logger = LoggerFactory.getLogger(Messages.class);
+    private ResourceBundle resourceBundle = null;
+    private Locale currentLocale;
 
-    private static ResourceBundle RESOURCE_BUNDLE = null;
-
-    private Messages() {
+    public Messages() {
+        // Initialize with default locale (English) when the singleton is created by Guice
+        setLocale(Language.ENGLISH);
     }
 
-    public static Messages getInstance() {
-        if (_instance == null) {
-            _instance = new Messages();
-        }
+    public void setLocale(String languageCode) {
+        ClassLoader loader = getClass().getClassLoader();
+        String requestedLanguage = (languageCode != null) ? languageCode : Language.ENGLISH;
+        currentLocale = new Locale(requestedLanguage);
+        String baseName = "hedos.utility.messages"; // Fully qualified base name
 
-        return _instance;
-    }
-
-    public static String[] getMutations() {
-        return getFieldsAsStringArray(Mutasyonlar.class);
-    }
-
-    public static String[] getCrossovers() {
-        return getFieldsAsStringArray(Caprazlamalar.class);
-    }
-
-    private static String[] getFieldsAsStringArray(Class snf) {
-        Field[] sahalar = snf.getDeclaredFields();
-        String[] sonuc = new String[sahalar.length];
-
-        for (int i = 0; i < sonuc.length; i++) {
+        logger.info("Attempting to load ResourceBundle for locale '{}' with base name '{}'", currentLocale, baseName);
+        
+        try {
+            // Attempt 1: Load requested locale
+            resourceBundle = ResourceBundle.getBundle(baseName, currentLocale, loader);
+            logger.info("Successfully loaded ResourceBundle for locale '{}'", currentLocale);
+        } catch (MissingResourceException e1) {
             try {
-                sonuc[i] = sahalar[i].get(snf).toString();
-            } catch (Exception e) {
-                System.err.println(sahalar[i].getName()
-                        + Messages.getInstance()
-                        .getString("Ayarlar.eklenemedi"));
+                // Attempt 2: Fallback to English if requested locale failed
+                logger.warn("ResourceBundle for locale '{}' not found. Falling back to English (Locale.ENGLISH).", currentLocale);
+                resourceBundle = ResourceBundle.getBundle(baseName, Locale.ENGLISH, loader);
+                currentLocale = Locale.ENGLISH; // Update currentLocale to reflect actual loaded locale
+                logger.info("Successfully loaded fallback ResourceBundle for English.");
+            } catch (MissingResourceException e2) {
+                // Attempt 3: Final fallback to an empty bundle to prevent NPEs
+                logger.error("No ResourceBundles found for base name '{}' or fallback. Labels will be keys only.", baseName, e2);
+                resourceBundle = new ListResourceBundle() {
+                    @Override
+                    protected Object[][] getContents() {
+                        return new Object[0][0];
+                    }
+                };
+                currentLocale = Locale.ROOT; // Indicate no specific locale loaded
             }
-        }
-
-        return sonuc;
-    }
-
-    public void init(String _language) {
-        if (_language != null) {
-            RESOURCE_BUNDLE = ResourceBundle.getBundle(_language);
-        } else {
-            RESOURCE_BUNDLE = ResourceBundle.getBundle(Language.tr);
         }
     }
 
     public String getString(String key) {
+        if (resourceBundle == null) {
+            logger.warn("ResourceBundle is null. Returning key as-is for key: {}", key);
+            return '!' + key + '!';
+        }
         try {
-            return RESOURCE_BUNDLE.getString(key);
+            return resourceBundle.getString(key);
         } catch (MissingResourceException e) {
+            logger.warn("Key '{}' not found in ResourceBundle for locale '{}'. Returning key as-is.", key, currentLocale);
             return '!' + key + '!';
         }
     }
 
-    public final static class Mutasyonlar {
-
-        public final static String normalRastgele = Messages.getInstance()
-                .getString("Ayarlar.NormalRastgele");
-
-        public final static String sadeceGelistirenRastgele = Messages
-                .getInstance().getString("Ayarlar.SadeceGelistirenRastgele");
-
-        public final static String sadeceGelistirenSistematik = Messages
-                .getInstance().getString("Ayarlar.SadeceGelistirenSistematik");
-    }
-
-    public final static class Caprazlamalar {
-        public final static String tekNoktali = Messages.getInstance()
-                .getString("Ayarlar.TekNoktali");
-        public final static String ciftNoktali = Messages.getInstance()
-                .getString("Ayarlar.CiftNoktali");
-        public final static String uniform = Messages.getInstance().getString(
-                "Ayarlar.uniform");
-    }
-
     public final static class Language {
-        public final static String en = "en";
-        final static String tr = "tr";
+        public final static String ENGLISH = "en";
+        public final static String TURKISH = "tr";
     }
 }

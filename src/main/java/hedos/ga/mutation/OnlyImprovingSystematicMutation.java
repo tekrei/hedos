@@ -1,31 +1,47 @@
 package hedos.ga.mutation;
 
-import hedos.ga.GeneticAlgorithm;
 import hedos.ga.data.Chromosome;
+import hedos.ga.data.CostCalculator;
 import hedos.ga.data.GAParameters;
+import com.google.inject.Inject;
+import hedos.utility.MessageKeys;
 
 public class OnlyImprovingSystematicMutation extends Mutation {
+    private final CostCalculator calculator;
+
+    @Inject
+    public OnlyImprovingSystematicMutation(CostCalculator calculator) {
+        this.calculator = calculator;
+    }
 
     @Override
-    void mutate(Chromosome chromosome) {
-        int[] tempDeger = chromosome.getGenes().clone();
+    Chromosome mutate(Chromosome chromosome, GAParameters params) {
+        int[] tempGenes = chromosome.genes().clone();
+        int size = tempGenes.length;
+        float originalCost = chromosome.cost();
 
-        if (GAParameters.getInstance().nextFloat() < GAParameters
-                .getInstance().getMutationProbability()) {
-            boolean devam = true;
+        for (int i = 0; i < size; i++) {
+            for (int j = i + 1; j < size; j++) {
+                // Swap
+                int geneA = tempGenes[i];
+                tempGenes[i] = tempGenes[j];
+                tempGenes[j] = geneA;
 
-            for (int i = 0; (i < tempDeger.length) && devam; i++) {
-                for (int j = i + 1; (j < tempDeger.length) && devam; j++) {
-                    int temp = tempDeger[i];
-                    tempDeger[i] = tempDeger[j];
-                    tempDeger[i] = temp;
-
-                    if (GeneticAlgorithm.calculateCost(tempDeger) < chromosome.getCost()) {
-                        chromosome.setGenes(tempDeger, GeneticAlgorithm.calculateCost(tempDeger));
-                        devam = false;
-                    }
+                float newCost = calculator.calculateCost(tempGenes);
+                if (newCost < originalCost) {
+                    return new Chromosome(tempGenes, newCost);
                 }
+                
+                // Revert swap efficiently
+                tempGenes[j] = tempGenes[i];
+                tempGenes[i] = geneA;
             }
         }
+        return chromosome;
+    }
+
+    @Override
+    public String getNameKey() {
+        return MessageKeys.MUTATION_ONLY_IMPROVING_SYSTEMATIC;
     }
 }

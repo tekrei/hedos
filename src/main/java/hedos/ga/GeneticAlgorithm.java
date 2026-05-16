@@ -1,99 +1,144 @@
 package hedos.ga;
 
 import hedos.ga.crossover.Crossover;
+import hedos.ga.crossover.CrossoverFactory;
 import hedos.ga.data.Chromosome;
 import hedos.ga.data.GAParameters;
+import hedos.ga.data.CostCalculator;
 import hedos.ga.data.Point;
 import hedos.ga.mutation.Mutation;
+import hedos.ga.mutation.MutationFactory;
+import hedos.ga.selection.Selection;
+import hedos.ga.selection.SelectionFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.IntStream;
+import com.google.inject.Inject;
 
 public class GeneticAlgorithm {
-    private static ArrayList<Point> TARGETS;
+    private List<Point> targets;
     private Chromosome[] population;
     private Chromosome best;
+    private final GAParameters gaParameters;
+    private final CrossoverFactory crossoverFactory;
+    private final MutationFactory mutationFactory;
+    private final SelectionFactory selectionFactory;
+    private CostCalculator calculator;
+    private ProgressListener progressListener;
+    private volatile boolean cancelled = false;
 
-    public static float calculateCost(int[] genes) {
-        float cost = 0.0f;
-
-        for (int i = 1; i < genes.length; i++) {
-            cost += TARGETS.get(genes[i]).distance(TARGETS.get(genes[i - 1]));
-        }
-
-        return cost;
+    @FunctionalInterface
+    public interface ProgressListener {
+        void onProgress(int current, int total, float bestCost);
     }
 
-    public Chromosome run(ArrayList<Point> _targets) {
-        TARGETS = _targets;
+    @Inject
+    public GeneticAlgorithm(GAParameters gaParameters, 
+                            CrossoverFactory crossoverFactory,
+                            MutationFactory mutationFactory,
+                            SelectionFactory selectionFactory) {
+        this.gaParameters = gaParameters;
+        this.crossoverFactory = crossoverFactory;
+        this.mutationFactory = mutationFactory;
+        this.selectionFactory = selectionFactory;
+    }
+
+    public void setCalculator(CostCalculator calculator) {
+        this.calculator = calculator;
+    }
+
+    public void setProgressListener(ProgressListener progressListener) {
+        this.progressListener = progressListener;
+    }
+
+    public void cancel() {
+        this.cancelled = true;
+    }
+
+    public Chromosome run(List<Point> targets) {
+        this.targets = targets;
         best = null;
         initPopulation();
+        cancelled = false;
 
         int generation = 0;
-        Crossover caprazlayici = GAParameters.getCrossover();
-        Mutation mutator = GAParameters.getMutation();
+        Crossover crossoverOperator = crossoverFactory.get(gaParameters.getCrossoverType());
+        Mutation mutator = mutationFactory.get(gaParameters.getMutationType());
+        Selection selectionOperator = selectionFactory.get(gaParameters.getSelectionType());
 
-        while (generation < GAParameters.getInstance().getNesilSayisi()) {
-            //long bas = System.currentTimeMillis();
+        while (generation < gaParameters.getGenerationCount()) {
+            if (cancelled || Thread.currentThread().isInterrupted()) {
+                break;
+            }
             generation++;
-            if (caprazlayici != null) {
-                population = caprazlayici.crossover(population);
+
+            // Step 1: Selection (Parent Selection / Mating Pool)
+            if (selectionOperator != null) {
+                // Parallelizing independent selection operations
+                population = IntStream.range(0, population.length)
+                        .parallel()
+                        .mapToObj(i -> selectionOperator.select(population, gaParameters.getTournamentSize()))
+                        .toArray(Chromosome[]::new);
+            }
+
+            // Step 2: Variation (Crossover and Mutation)
+            if (crossoverOperator != null) {
+                population = crossoverOperator.crossover(population, gaParameters);
             }
             if (mutator != null) {
-                population = mutator.mutate(population);
+                population = mutator.mutate(population, gaParameters);
             }
+
+            // Refresh cost and sharp turns for the new generation
+            Arrays.stream(population).parallel().forEach(chromosome -> {
+                if (!chromosome.isEvaluated()) {
+                    int[] genes = chromosome.genes();
+                    chromosome.setCost(calculator.calculateCost(genes));
+                    chromosome.setTurnCost(calculator.calculateTurnCost(genes));
+                }
+            });
+
             Arrays.sort(population);
             elitism();
-            //System.out.println(generation + "\t" + best.toString() + "\t" + (System.currentTimeMillis() - bas));
+            if (progressListener != null) {
+                progressListener.onProgress(generation, gaParameters.getGenerationCount(), best.cost());
+            }
         }
         return best;
     }
 
     private int[] randomGenes() {
-        int[] genes = new int[TARGETS.size()];
-
-        for (int i = 0; i < genes.length; i++) {
-            genes[i] = -1;
-        }
-
-        Random generator = new Random();
-
-        for (int i = 0; i < genes.length; i++) {
-            int uretilen = generator.nextInt(genes.length);
-
-            while (contains(genes, uretilen)) {
-                uretilen = generator.nextInt(genes.length);
-            }
-
-            genes[i] = uretilen;
-        }
-        return genes;
-    }
-
-    private boolean contains(int[] array, int gene) {
-        return IntStream.of(array).anyMatch(x -> x == gene);
+        List<Integer> indices = new ArrayList<>(
+                IntStream.range(0, targets.size()).boxed().toList()
+        );
+        Collections.shuffle(indices);
+        return indices.stream().mapToInt(i -> i).toArray();
     }
 
     private void elitism() {
-        if (best == null) {
-            best = new Chromosome(population[0].getGenes(), population[0].getCost());
-        } else if (GAParameters.getInstance().isElitism()) {
-            population[population.length - 1].setGenes(best.getGenes(), best.getCost());
-        }
-
-        if (best.getCost() > population[0].getCost()) {
-            best.setGenes(population[0].getGenes().clone(), population[0].getCost());
+        if (best == null || population[0].cost() < best.cost()) {
+            // Reuse the existing Chromosome object reference
+            best = population[0];
+        } else if (gaParameters.isElitism()) {
+            // Replace the worst individual (last in sorted array) with the current best
+            population[population.length - 1] = best;
         }
     }
 
     private void initPopulation() {
-        population = new Chromosome[GAParameters.getInstance().getToplumBuyuklugu()];
+        population = new Chromosome[gaParameters.getPopulationSize()];
 
         for (int i = 0; i < population.length; i++) {
             int[] genes = randomGenes();
-            population[i] = new Chromosome(genes, calculateCost(genes));
+            population[i] = new Chromosome(genes, calculator.calculateCost(genes), calculator.calculateTurnCost(genes));
         }
+    }
+
+    public float calculateCost(int[] genes) {
+        return calculator.calculateCost(genes);
+    }
+
+    public float calculateTurnCost(int[] genes) {
+        return calculator.calculateTurnCost(genes);
     }
 }

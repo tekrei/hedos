@@ -15,10 +15,31 @@
     </licenses>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <xj3d.natives>${project.build.directory}/natives</xj3d.natives>
     </properties>
+    <repositories>
+        <repository>
+            <id>project-local-repo</id>
+            <url>file://${project.basedir}/repo</url>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
+        </repository>
+    </repositories>
     <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.9</version>
+        </dependency>
         <dependency>
             <groupId>org.jogamp.jogl</groupId>
             <artifactId>jogl-all-main</artifactId>
@@ -34,40 +55,150 @@
             <artifactId>gluegen-rt</artifactId>
             <version>2.3.2</version>
         </dependency>
+        <!-- Native JOGL/Gluegen dependencies for Linux x86_64 -->
         <dependency>
-            <groupId>xj3d</groupId>
-            <artifactId>xj3d</artifactId>
-            <version>2.1</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/xj3d-2.1-nps.jar</systemPath>
+            <groupId>org.jogamp.jogl</groupId>
+            <artifactId>jogl-all</artifactId>
+            <version>2.3.2</version>
+            <classifier>natives-linux-amd64</classifier>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>xj3d</groupId>
+            <groupId>org.jogamp.joal</groupId>
+            <artifactId>joal</artifactId>
+            <version>2.3.2</version>
+            <classifier>natives-linux-amd64</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jogamp.gluegen</groupId>
+            <artifactId>gluegen-rt</artifactId>
+            <version>2.3.2</version>
+            <classifier>natives-linux-amd64</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.j3d</groupId>
+            <artifactId>aviatrix3d-all</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xj3d</groupId>
+            <artifactId>xj3d-core</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xj3d</groupId>
             <artifactId>xj3d-browser</artifactId>
-            <version>2.1.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/xj3d.browser_2.1.0-nps.jar</systemPath>
+            <version>2.3.0</version>
         </dependency>
         <dependency>
-            <groupId>xj3d</groupId>
+            <groupId>org.xj3d</groupId>
             <artifactId>xj3d-cadfilter</artifactId>
-            <version>2.1.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/xj3d.cadfilter_2.1.0-nps.jar</systemPath>
+            <version>2.3.0</version>
         </dependency>
         <dependency>
-            <groupId>xj3d</groupId>
+            <groupId>org.xj3d</groupId>
             <artifactId>xj3d-replica</artifactId>
-            <version>2.1.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/xj3d.replica_2.1.0-nps.jar</systemPath>
+            <version>2.3.0</version>
         </dependency>
         <dependency>
-            <groupId>xj3d</groupId>
+            <groupId>org.xj3d</groupId>
             <artifactId>xj3d-3rdparty</artifactId>
-            <version>2.1</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/xj3d-2.1-3rdparty-nps.jar</systemPath>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xj3d</groupId>
+            <artifactId>odejava</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>7.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-swing</artifactId>
+            <version>12.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-fontawesome5-pack</artifactId>
+            <version>12.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
         </dependency>
     </dependencies>
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.properties</include>
+                    <include>**/*.yaml</include>
+                    <include>**/*.x3d</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version> <!-- Use a recent version -->
+                <executions>
+                    <execution>
+                        <id>unpack-natives</id>
+                        <!-- This phase ensures natives are unpacked before compilation/packaging -->
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Output directory for the unpacked native libraries -->
+                            <outputDirectory>${project.build.directory}/natives</outputDirectory>
+                            <!-- Include only the native JARs for unpacking -->
+                            <includeGroupIds>org.jogamp.jogl,org.jogamp.gluegen,org.jogamp.joal,org.xj3d</includeGroupIds>
+                            <includeArtifactIds>jogl-all,gluegen-rt,joal,odejava</includeArtifactIds>
+                            <includeClassifiers>natives-linux-amd64</includeClassifiers>
+                            <!-- Ensure existing files are not overwritten unnecessarily -->
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>hedos.HedosFrame</mainClass>
+                    <!-- Use exec goal to run in a separate process for better native support -->
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>--add-exports=java.desktop/sun.awt=ALL-UNNAMED</argument>
+                        <argument>--add-opens=java.desktop/sun.awt=ALL-UNNAMED</argument>
+                        <argument>-Djava.library.path=${xj3d.natives}</argument>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>hedos.HedosFrame</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

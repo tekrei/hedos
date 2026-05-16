@@ -1,26 +1,39 @@
 package hedos.ga.mutation;
 
-import hedos.ga.GeneticAlgorithm;
 import hedos.ga.data.Chromosome;
+import hedos.ga.data.CostCalculator;
 import hedos.ga.data.GAParameters;
+import com.google.inject.Inject;
+import hedos.utility.MessageKeys;
 
 public class OnlyImprovingRandomMutation extends Mutation {
+    private final CostCalculator calculator;
+
+    @Inject
+    public OnlyImprovingRandomMutation(CostCalculator calculator) {
+        this.calculator = calculator;
+    }
 
     @Override
-    void mutate(Chromosome degisecek) {
-        int[] tempDeger = degisecek.getGenes().clone();
+    Chromosome mutate(Chromosome toMutate, GAParameters params) {
+        int[] tempGenes = toMutate.genes().clone();
 
-        if (GAParameters.getInstance().nextFloat() < GAParameters
-                .getInstance().getMutationProbability()) {
-            int first = GAParameters.getInstance().nextInt(tempDeger.length);
-            int second = GAParameters.getInstance().nextInt(tempDeger.length);
+        int first = params.nextInt(tempGenes.length);
+        int second = params.nextInt(tempGenes.length);
 
-            int temp = tempDeger[first];
-            tempDeger[first] = tempDeger[second];
-            tempDeger[second] = temp;
+        int temp = tempGenes[first];
+        tempGenes[first] = tempGenes[second];
+        tempGenes[second] = temp;
+
+        float newCost = calculator.calculateCost(tempGenes);
+        if (newCost < toMutate.cost()) {
+            return new Chromosome(tempGenes, newCost);
         }
-        if (GeneticAlgorithm.calculateCost(tempDeger) < degisecek.getCost()) {
-            degisecek.setGenes(tempDeger, GeneticAlgorithm.calculateCost(tempDeger));
-        }
+        return toMutate;
+    }
+
+    @Override
+    public String getNameKey() {
+        return MessageKeys.MUTATION_ONLY_IMPROVING_RANDOM;
     }
 }

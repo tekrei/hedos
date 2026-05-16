@@ -4,14 +4,19 @@ This source code deals with solving 3D Travelling Salesman Problem using Genetic
 
 ## Xj3D installation and copying required libraries
 
-- Download _Xj3D installer_ from [Xj3D Download Page](https://sourceforge.net/projects/xj3d/files/installers/)
+- Download _Xj3D installer_ from [Xj3D Download Page](https://savage.nps.edu/Xj3D.nps/jars/README.html)
 - Install it and copy the following JARs from _jar_ inside the Xj3D installation folder
   to the _lib_ folder under the project folder:
-  - xj3d.browser_2.1.0-nps.jar
-  - xj3d.cadfilter_2.1.0-nps.jar
-  - xj3d.replica_2.1.0-nps.jar
-  - xj3d-2.1-3rdparty-nps.jar
-  - xj3d-2.1-nps.jar
+
+| File | Suggested ArtifactId |
+| :--- | :--- |
+| `aviatrix3d-all_3.1.1-nps.jar` | `aviatrix3d-all` |
+| `xj3d.browser_2.3.0-nps.jar` | `xj3d-browser` |
+| `xj3d.cadfilter_2.3.0-nps.jar` | `xj3d-cadfilter` |
+| `xj3d.replica_2.3.0-nps.jar` | `xj3d-replica` |
+| `xj3d-2.3-3rdparty-nps.jar` | `xj3d-3rdparty` |
+| `xj3d-2.3-nps.jar` | `xj3d-core` |
+
 - You can run the program now, it gives the following native library error:
 
   SEVERE: Native code library (32 and 64 bit library) failed to load: java.lang.UnsatisfiedLinkError: no odejava in java.library.path

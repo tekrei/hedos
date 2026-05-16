@@ -1,29 +1,26 @@
 package hedos.ga.crossover;
 
-import hedos.ga.GeneticAlgorithm;
 import hedos.ga.data.Chromosome;
+import hedos.utility.MessageKeys;
 
 public class TwoPointCrossover extends Crossover {
     @Override
-    void match(Chromosome firstParent, Chromosome secondParent) {
-        // 10 elemanli bir dizide 1. kesme 3, ikinci kesme 6 da olacak
-        int cp1 = firstParent.getGenes().length / 3;
+    Chromosome[] reproduce(Chromosome p1, Chromosome p2) {
+        int cp1 = p1.genes().length / 3;
         int cp2 = 2 * cp1;
 
-        // Kesme noktasina gore bu kromozomlari esleyelim
-        int[] firstParentGenes = firstParent.getGenes();
+        int[] c1Genes = fixGenes(matchGenes(p1.genes(), p2.genes(), cp1, cp2));
+        int[] c2Genes = fixGenes(matchGenes(p2.genes(), p1.genes(), cp1, cp2));
 
-        int[] secondParentGenes = secondParent.getGenes();
+        return new Chromosome[] {
+            new Chromosome(c1Genes),
+            new Chromosome(c2Genes)
+        };
+    }
 
-        int[] child = matchGenes(firstParentGenes, secondParentGenes, cp1, cp2);
-        child = fixGenes(child);
-
-        firstParent.setGenes(child, GeneticAlgorithm.calculateCost(child));
-
-        child = matchGenes(secondParentGenes, firstParentGenes, cp1, cp2);
-        child = fixGenes(child);
-
-        secondParent.setGenes(child, GeneticAlgorithm.calculateCost(child));
+    @Override
+    public String getNameKey() {
+        return MessageKeys.CROSSOVER_TWO_POINT;
     }
 
     private int[] matchGenes(int[] p1, int[] p2, int c1, int c2) {

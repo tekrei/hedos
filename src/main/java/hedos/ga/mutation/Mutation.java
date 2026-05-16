@@ -2,21 +2,27 @@ package hedos.ga.mutation;
 
 import hedos.ga.data.Chromosome;
 import hedos.ga.data.GAParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class Mutation {
-    public Chromosome[] mutate(Chromosome[] toplum) {
-        for (int i = 0; i < toplum.length; i = i + 2) {
+    private static final Logger logger = LoggerFactory.getLogger(Mutation.class);
+
+    public Chromosome[] mutate(Chromosome[] population, GAParameters params) {
+        for (int i = 0; i < population.length; i++) {
             try {
-                if (GAParameters.getInstance().mutasyon()) {
-                    mutate(toplum[i]);
+                if (params.shouldMutate()) {
+                    population[i] = mutate(population[i], params);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("Mutation operation failed at index {}: {}", i, e.getMessage(), e);
             }
         }
 
-        return toplum;
+        return population;
     }
 
-    abstract void mutate(Chromosome chromosome);
+    abstract Chromosome mutate(Chromosome chromosome, GAParameters params);
+
+    public abstract String getNameKey();
 }
