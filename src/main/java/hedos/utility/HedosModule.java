@@ -15,7 +15,9 @@ import hedos.ga.crossover.*;
 import hedos.ga.data.*;
 import hedos.ga.mutation.*;
 import hedos.ga.selection.*;
+import hedos.ui.BenchmarkService;
 import hedos.ui.GenerateRandomTargetsDialog;
+import hedos.ui.HedosMenu;
 import hedos.ui.TargetManagementDialog;
 
 /**
@@ -35,6 +37,8 @@ public class HedosModule extends AbstractModule {
         bind(PopulationEvaluator.class).in(Scopes.SINGLETON);
         bind(PersistenceService.class).in(Scopes.SINGLETON);
         bind(GeneticAlgorithmService.class).in(Scopes.SINGLETON);
+        bind(HedosMenu.class).in(Scopes.SINGLETON);
+        bind(BenchmarkService.class).in(Scopes.SINGLETON);
 
         // Bind CostCalculator to its implementation
         bind(CostCalculator.class).to(TSPCostCalculator.class).in(Scopes.SINGLETON);

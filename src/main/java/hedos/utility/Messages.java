@@ -4,6 +4,7 @@ import java.util.MissingResourceException;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.ListResourceBundle;
+import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.inject.Singleton;
@@ -11,10 +12,13 @@ import com.google.inject.Singleton;
 @Singleton
 public class Messages {
     private static final Logger logger = LoggerFactory.getLogger(Messages.class);
+    private final EventBus eventBus;
     private ResourceBundle resourceBundle = null;
     private Locale currentLocale;
 
-    public Messages() {
+    @Inject
+    public Messages(EventBus eventBus) {
+        this.eventBus = eventBus;
         // Initialize with default locale (English) when the singleton is created by Guice
         setLocale(Language.ENGLISH);
     }
@@ -50,6 +54,7 @@ public class Messages {
                 currentLocale = Locale.ROOT; // Indicate no specific locale loaded
             }
         }
+        eventBus.publish(new EventBus.LocaleChangedEvent(requestedLanguage));
     }
 
     public String getString(String key) {

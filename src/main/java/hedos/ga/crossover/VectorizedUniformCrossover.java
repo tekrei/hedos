@@ -2,6 +2,7 @@ package hedos.ga.crossover;
 
 import hedos.ga.data.Chromosome;
 import jdk.incubator.vector.IntVector;
+import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorSpecies;
 import java.util.Random;
 
@@ -19,10 +20,9 @@ public class VectorizedUniformCrossover extends Crossover {
 
         for (int i = 0; i < n; i += SPECIES.length()) {
             var mask = SPECIES.indexInRange(i, n);
-            // Generate a random bit mask for uniform selection
-            boolean[] bits = new boolean[SPECIES.length()];
-            for (int b = 0; b < bits.length; b++) bits[b] = random.nextBoolean();
-            var vMask = SPECIES.loadMask(bits, 0).and(mask);
+            
+            // Directly generate a random bit mask from a long to avoid array allocation
+            var vMask = VectorMask.fromLong(SPECIES, random.nextLong()).and(mask);
 
             var v1 = IntVector.fromArray(SPECIES, g1, i, mask);
             var v2 = IntVector.fromArray(SPECIES, g2, i, mask);

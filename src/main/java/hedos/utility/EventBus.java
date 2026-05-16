@@ -16,6 +16,7 @@ public class EventBus {
 
     public record SettingsChangedEvent() {}
     public record LoadSettingsRequest(java.io.File file) {}
+    public record LocaleChangedEvent(String newLocale) {}
 
     public synchronized <T> void subscribe(Class<T> eventType, Consumer<T> listener) {
         listeners.computeIfAbsent(eventType, k -> new ArrayList<>()).add(obj -> listener.accept(eventType.cast(obj)));

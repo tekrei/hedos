@@ -9,10 +9,9 @@ import hedos.ga.data.Point;
 import hedos.utility.MessageKeys;
 import hedos.utility.EventBus;
 import hedos.utility.PathUtils;
+import hedos.ui.HedosMenu;
 import hedos.graphics.X3DEngine;
 import hedos.ui.PropertiesPanel;
-import hedos.ui.TargetManagementDialog;
-import hedos.ui.GenerateRandomTargetsDialog;
 import hedos.ui.DurationChartPanel;
 import hedos.utility.HedosModule;
 import hedos.utility.Messages;
@@ -34,6 +33,8 @@ import com.google.inject.Injector;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 @Singleton
 public class HedosFrame extends JFrame {
@@ -47,22 +48,19 @@ public class HedosFrame extends JFrame {
     private final EventBus eventBus;
     private final PersistenceService persistenceService;
     private final GeneticAlgorithmService gaService;
-    private final TargetManagementDialog.Factory targetMgmtFactory;
-    private final GenerateRandomTargetsDialog.Factory generateTargetsFactory;
+    private final HedosMenu hedosMenu;
 
     private Chromosome lastBestSolution;
     private JProgressBar progressBar;
     private JLabel statusLabel;
     private JLabel lastLogLabel;
     private DurationChartPanel chartPanel;
-    private JMenuBar menu;
 
     @Inject
     public HedosFrame(PropertiesPanel propertiesPanel, Messages messages, GAParameters gaParams, 
                       X3DEngine engine, Settings settings, PersistenceService persistenceService,
                       CostCalculator calculator, EventBus eventBus, GeneticAlgorithmService gaService,
-                      TargetManagementDialog.Factory targetMgmtFactory,
-                      GenerateRandomTargetsDialog.Factory generateTargetsFactory) {
+                      HedosMenu hedosMenu) {
         this.propertiesPanel = propertiesPanel;
         this.messages = messages;
         this.gaParams = gaParams;
@@ -72,8 +70,7 @@ public class HedosFrame extends JFrame {
         this.calculator = calculator;
         this.eventBus = eventBus;
         this.gaService = gaService;
-        this.targetMgmtFactory = targetMgmtFactory;
-        this.generateTargetsFactory = generateTargetsFactory;
+        this.hedosMenu = hedosMenu;
     }
 
     public static void main(String[] args) {
@@ -91,6 +88,9 @@ public class HedosFrame extends JFrame {
         
         // Subscribe to global settings changes
         eventBus.subscribe(EventBus.SettingsChangedEvent.class, e -> SwingUtilities.invokeLater(this::refreshTargets));
+        
+        // Robust localization refresh
+        eventBus.subscribe(EventBus.LocaleChangedEvent.class, e -> SwingUtilities.invokeLater(this::refreshLabels));
     }
 
     private void uiInit() {
@@ -133,87 +133,15 @@ public class HedosFrame extends JFrame {
         this.add(bottomPanel, BorderLayout.SOUTH);
 
         this.add(splitPane, BorderLayout.CENTER);
-        this.setJMenuBar(getMenu());
+        hedosMenu.setupMenu();
+        this.setJMenuBar(hedosMenu);
 
         setSize(1440, 900);
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
-
-    private JMenuBar getMenu() {
-        if (menu == null) {
-            menu = new JMenuBar();
-
-            JMenu fileMenu = new JMenu(messages.getString(MessageKeys.HEDOS_FRAME_FILE));
-            JMenuItem menuItem;
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_LOAD_SETTINGS));
-            menuItem.addActionListener(e -> persistenceService.loadSettings(this));
-            fileMenu.add(menuItem);
-
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_SAVE_RESULTS));
-            menuItem.addActionListener(e -> persistenceService.saveResults(this, lastBestSolution, chartPanel));
-            fileMenu.add(menuItem);
-
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_SAVE_CHART));
-            menuItem.addActionListener(e -> persistenceService.saveChart(this, chartPanel));
-            fileMenu.add(menuItem);
-
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_SAVE_SETTINGS_AS));
-            menuItem.addActionListener(e -> persistenceService.saveSettings(this, gaParams));
-            fileMenu.add(menuItem);
-
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_EXIT));
-            menuItem.addActionListener(e -> System.exit(0));
-            fileMenu.add(menuItem);
-
-            menu.add(fileMenu);
-
-            JMenu settingsMenu = new JMenu(messages.getString(MessageKeys.HEDOS_FRAME_SETTINGS));
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_MULTIPLE_TEST));
-            menuItem.addActionListener(e -> multipleCalculation());
-            settingsMenu.add(menuItem);
-
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_MANAGE_TARGETS));
-            menuItem.addActionListener(e -> targetMgmtFactory.create(this).setVisible(true));
-            settingsMenu.add(menuItem);
-
-            menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_GENERATE_TARGETS));
-            menuItem.addActionListener(e -> {
-                GenerateRandomTargetsDialog dialog = generateTargetsFactory.create(this);
-                dialog.setLocationRelativeTo(this);
-                dialog.setVisible(true);
-            });
-            settingsMenu.add(menuItem);
-
-            menu.add(settingsMenu);
-        }
-        
-        // Add Language Menu
-        JMenu langMenu = new JMenu(messages.getString(MessageKeys.HEDOS_FRAME_LANGUAGE));
-        JMenuItem englishItem = new JMenuItem("English");
-        englishItem.addActionListener(e -> switchLanguage(Messages.Language.ENGLISH));
-        JMenuItem turkishItem = new JMenuItem("Türkçe");
-        turkishItem.addActionListener(e -> switchLanguage(Messages.Language.TURKISH));
-        
-        langMenu.add(englishItem);
-        langMenu.add(turkishItem);
-        menu.add(langMenu);
-
-        return menu;
-    }
-
-    private void switchLanguage(String langCode) {
-        messages.setLocale(langCode);
-        refreshLabels();
-        propertiesPanel.refreshLabels();
-    }
-
     public void refreshLabels() {
-        // Recreate menu to refresh all labels
-        menu = null;
-        setJMenuBar(getMenu());
-        
         statusLabel.setText(messages.getString(MessageKeys.STATUS_BAR_READY));
         progressBar.setString(null); // Reset progress string if any
         
@@ -343,6 +271,10 @@ public class HedosFrame extends JFrame {
         lastLogLabel.setText(message);
     }
 
+    public void showStatus(String message) {
+        SwingUtilities.invokeLater(() -> log(message));
+    }
+
     public void travel() {
         engine.setRoute(targets, settings.getStartPoint());
         engine.startTour(targets.size());
@@ -377,5 +309,13 @@ public class HedosFrame extends JFrame {
 
     public List<Point> getTargets() {
         return targets;
+    }
+
+    public Chromosome getLastBestSolution() {
+        return lastBestSolution;
+    }
+
+    public DurationChartPanel getChartPanel() {
+        return chartPanel;
     }
 }

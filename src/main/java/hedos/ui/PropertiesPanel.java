@@ -2,6 +2,7 @@ package hedos.ui;
 
 import hedos.HedosFrame;
 import hedos.ga.data.GAParameters;
+import hedos.utility.EventBus;
 import hedos.utility.Messages;
 import hedos.utility.MessageKeys;
 import javax.swing.border.TitledBorder;
@@ -59,11 +60,12 @@ public class PropertiesPanel extends JPanel {
     private JPanel actionButtonPanel;
 
     @Inject
-    public PropertiesPanel(Provider<HedosFrame> frameProvider, Messages messages, GAParameters gaParams) {
+    public PropertiesPanel(Provider<HedosFrame> frameProvider, Messages messages, GAParameters gaParams, EventBus eventBus) {
         super();
         this.frameProvider = frameProvider;
         this.messages = messages;
         this.gaParameters = gaParams;
+        eventBus.subscribe(EventBus.LocaleChangedEvent.class, e -> refreshLabels());
     }
 
     @Inject

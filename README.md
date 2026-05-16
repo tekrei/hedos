@@ -6,11 +6,12 @@ Originally developed for an MSc thesis in 2006, it has been modernized to use **
 
 ## Key Features
 
-- **Java 25 Modernization**: Utilizes **Virtual Threads**, finalized **Structured Concurrency**, and **Scoped Values** for scalable, safe, and efficient parallel execution.
+- **Java 25 Modernization**: Utilizes **Virtual Threads**, finalized **Structured Concurrency**, and **Scoped Values** to manage execution context across parallel tasks without the overhead of ThreadLocals.
 - **High-Performance Math & Memory**: Leverages the **Vector API (SIMD)** for lightning-fast calculations and the **Foreign Function & Memory (FFM) API** for optimized off-heap data management.
 - **Robust Architecture**: Built with **Google Guice (DI)**, **Jackson (YAML)**, and an **EventBus** for clean separation of concerns.
 - **Interactive Visualization**: Real-time performance charting with persistent tooltips and 3D path rendering.
-
+- **Scientific Benchmarking**: Integrated **JMH (Java Microbenchmark Harness)** suite to quantify SIMD speedups and memory throughput directly from the UI.
+ 
 ### Why the FFM API?
 
 Traditional Java arrays are indexed by `int`, limiting them to approximately 2.1 billion elements. For large-scale 3D TSP problems, the $N^2$ distance matrix can easily exceed this limit. By using the **FFM API** (`MemorySegment`):
@@ -72,11 +73,12 @@ mvn clean compile exec:exec
 
 ## Usage
 
-1. **Targets**: Manage 3D points via the "Manage Targets" dialog or generate random datasets through "File > Generate Random Targets".
-2. **Configuration**: Adjust GA parameters (Population, Mutation, Crossover) in the side panel. 
-3. **Hybrid GA**: Select a **Local Optimization** strategy (e.g., Lin-Kernighan or Parallel 3-Opt) to significantly improve solution quality.
-4. **Analysis**: Use the real-time **Duration Chart** to monitor performance. Click on the chart to view exact generation metrics in a persistent tooltip.
-5. **Persistence**: Save your best tour and detailed performance statistics using "File > Save Results".
+1.  **Targets**: Manage 3D points via the "Manage Targets" dialog or generate random datasets through "File > Generate Random Targets".
+2.  **Configuration**: Adjust GA parameters (Population, Mutation, Crossover) in the side panel. 
+3.  **Hybrid GA**: Select a **Local Optimization** strategy (e.g., Lin-Kernighan or Parallel 3-Opt) to significantly improve solution quality.
+4.  **Benchmarking**: Scientific validation of optimizations is available via the **Benchmark** menu. Results are displayed in a detailed dialog after the JMH suite completes.
+5.  **Analysis**: Use the real-time **Duration Chart** to monitor performance. Click on the chart to view exact generation metrics in a persistent tooltip.
+6.  **Persistence**: Save your best tour and detailed performance statistics using "File > Save Results".
 
 License: [**Apache License 2.0**](./LICENSE)
 
