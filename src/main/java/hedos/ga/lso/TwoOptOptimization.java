@@ -1,8 +1,11 @@
 package hedos.ga.lso; // File should be moved to src/main/java/hedos/ga/lso/
 
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+
 public class TwoOptOptimization extends LocalSearchOptimizer {
     @Override
-    public void optimize(int[] genes, float[] distanceMatrix, int[][] neighborLists, int n) {
+    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
         boolean improvement = true;
         boolean[] dlb = new boolean[n];
         while (improvement) {
@@ -11,8 +14,10 @@ public class TwoOptOptimization extends LocalSearchOptimizer {
                 if (dlb[genes[i]]) continue;
                 boolean cityImproved = false;
                 for (int j = i + 1; j < genes.length - 1; j++) {
-                    float currentDist = distanceMatrix[genes[i-1]*n + genes[i]] + distanceMatrix[genes[j]*n + genes[j+1]];
-                    float newDist = distanceMatrix[genes[i-1]*n + genes[j]] + distanceMatrix[genes[i]*n + genes[j+1]];
+                    float currentDist = distanceMatrix.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[i - 1] * n + genes[i]) + 
+                                       distanceMatrix.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[j] * n + genes[j + 1]);
+                    float newDist = distanceMatrix.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[i - 1] * n + genes[j]) + 
+                                   distanceMatrix.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[i] * n + genes[j + 1]);
                     if (newDist < currentDist) {
                         reverse(genes, i, j);
                         improvement = true;

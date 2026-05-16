@@ -1,6 +1,8 @@
 package hedos.ga.lso;
 
 import com.google.inject.Singleton;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.util.stream.IntStream;
 import java.util.Optional;
 
@@ -16,7 +18,7 @@ public class FirstThreeOptOptimization extends LocalSearchOptimizer {
     }
 
     @Override
-    public void optimize(int[] genes, float[] distanceMatrix, int[][] neighborLists, int n) {
+    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
         int[] pos = new int[n];
         for (int p = 0; p < n; p++) pos[genes[p]] = p;
 
@@ -38,7 +40,7 @@ public class FirstThreeOptOptimization extends LocalSearchOptimizer {
         }
     }
 
-    private Move findFirstMoveForI(int i, int[] genes, int[] pos, float[] dist, int[][] neighborLists, int n) {
+    private Move findFirstMoveForI(int i, int[] genes, int[] pos, MemorySegment dist, int[][] neighborLists, int n) {
         int cityA = genes[i - 1];
         for (int j = i + 2; j < genes.length - 2; j++) {
             int cityC = genes[j - 1];
@@ -46,15 +48,23 @@ public class FirstThreeOptOptimization extends LocalSearchOptimizer {
                 int k = pos[cityF];
                 if (k >= j + 2 && k < genes.length - 1) {
                     int a = cityA, b = genes[i], c = cityC, d = genes[j], e = genes[k - 1], f = cityF;
-                    float d0 = dist[a * n + b] + dist[c * n + d] + dist[e * n + f];
+                    float d0 = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + b) + 
+                               dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + d) + 
+                               dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + f);
 
-                    float g1 = d0 - (dist[a * n + c] + dist[b * n + d] + dist[e * n + f]);
+                    float g1 = d0 - (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + c) + 
+                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) b * n + d) + 
+                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + f));
                     if (g1 > 0.001f) return new Move(g1, i, j, k, 1);
 
-                    float g2 = d0 - (dist[a * n + b] + dist[c * n + e] + dist[d * n + f]);
+                    float g2 = d0 - (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + b) + 
+                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + e) + 
+                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) d * n + f));
                     if (g2 > 0.001f) return new Move(g2, i, j, k, 2);
 
-                    float g3 = d0 - (dist[a * n + d] + dist[e * n + b] + dist[c * n + f]);
+                    float g3 = d0 - (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + d) + 
+                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + b) + 
+                                     dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + f));
                     if (g3 > 0.001f) return new Move(g3, i, j, k, 3);
                 }
             }

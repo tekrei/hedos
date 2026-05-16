@@ -1,5 +1,7 @@
 package hedos.ga.lso;
 
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.util.stream.IntStream;
 
 /**
@@ -11,7 +13,7 @@ import java.util.stream.IntStream;
 public class PartitionedThreeOptOptimization extends LocalSearchOptimizer {
 
     @Override
-    public void optimize(int[] genes, float[] distanceMatrix, int[][] neighborLists, int n) {
+    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
         int processors = Runtime.getRuntime().availableProcessors();
         // We need segments large enough for 3-opt (at least 12 cities)
         int segmentSize = (genes.length - 2) / processors;
@@ -60,23 +62,31 @@ public class PartitionedThreeOptOptimization extends LocalSearchOptimizer {
         });
     }
 
-    private boolean tryLocal3OptMove(int[] genes, int i, int j, int k, float[] dist, int n) {
+    private boolean tryLocal3OptMove(int[] genes, int i, int j, int k, MemorySegment dist, int n) {
         int a = genes[i - 1], b = genes[i];
         int c = genes[j - 1], d = genes[j];
         int e = genes[k - 1], f = genes[k];
 
-        float d0 = dist[a * n + b] + dist[c * n + d] + dist[e * n + f];
+        float d0 = dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + b) + 
+                   dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + d) + 
+                   dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + f);
 
         // Check standard 3-opt reconnection cases
-        if (dist[a * n + c] + dist[b * n + d] + dist[e * n + f] < d0) {
+        if (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + c) + 
+            dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) b * n + d) + 
+            dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + f) < d0) {
             reverse(genes, i, j - 1);
             return true;
         }
-        if (dist[a * n + b] + dist[c * n + e] + dist[d * n + f] < d0) {
+        if (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + b) + 
+            dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + e) + 
+            dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) d * n + f) < d0) {
             reverse(genes, j, k - 1);
             return true;
         }
-        if (dist[a * n + d] + dist[e * n + b] + dist[c * n + f] < d0) {
+        if (dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) a * n + d) + 
+            dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) e * n + b) + 
+            dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) c * n + f) < d0) {
             int[] segmentB = new int[j - i];
             System.arraycopy(genes, i, segmentB, 0, j - i);
             int[] segmentC = new int[k - j];

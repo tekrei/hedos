@@ -4,6 +4,8 @@ import hedos.ga.data.ChromosomeFactory;
 import hedos.ga.lso.LocalSearchOptimizer;
 
 import java.util.concurrent.StructuredTaskScope;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import com.google.inject.Inject;
 
 /**
@@ -21,22 +23,25 @@ public class MultiStartLocalSearch extends LocalSearchOptimizer {
     }
 
     @Override
-    public void optimize(int[] genes, float[] distanceMatrix, int[][] neighborLists, int n) {
-        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            var tasks = new java.util.ArrayList<java.util.concurrent.StructuredTaskScope.Subtask<int[]>>();
+    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
+        try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll())) {
+            var tasks = new java.util.ArrayList<StructuredTaskScope.Subtask<int[]>>();
             
             for (int i = 0; i < STARTS; i++) {
                 tasks.add(scope.fork(() -> {
-                    int[] localGenes = (tasks.size() == 0) ? genes.clone() : factory.createRandomGenes(n);
+                    int[] localGenes = (tasks.isEmpty()) ? genes.clone() : factory.createRandomGenes(n);
                     delegate.optimize(localGenes, distanceMatrix, neighborLists, n);
                     return localGenes;
                 }));
             }
-            scope.join().throwIfFailed();
+            scope.join();
 
             // Pick best result
             float bestCost = Float.MAX_VALUE;
             for (var task : tasks) {
+                if (task.state() != StructuredTaskScope.Subtask.State.SUCCESS) {
+                    continue;
+                }
                 int[] result = task.get();
                 float cost = calculatePathCost(result, distanceMatrix, n);
                 if (cost < bestCost) {
@@ -47,9 +52,11 @@ public class MultiStartLocalSearch extends LocalSearchOptimizer {
         } catch (Exception e) { throw new RuntimeException(e); }
     }
 
-    private float calculatePathCost(int[] genes, float[] dist, int n) {
+    private float calculatePathCost(int[] genes, MemorySegment dist, int n) {
         float cost = 0;
-        for (int i = 0; i < n - 1; i++) cost += dist[genes[i] * n + genes[i+1]];
+        for (int i = 0; i < n - 1; i++) {
+            cost += dist.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[i] * n + genes[i + 1]);
+        }
         return cost;
     }
 

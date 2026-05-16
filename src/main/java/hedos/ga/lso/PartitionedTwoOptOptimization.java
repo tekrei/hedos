@@ -1,5 +1,7 @@
 package hedos.ga.lso;
 
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.util.stream.IntStream;
 
 /**
@@ -9,7 +11,7 @@ import java.util.stream.IntStream;
 public class PartitionedTwoOptOptimization extends LocalSearchOptimizer {
 
     @Override
-    public void optimize(int[] genes, float[] distanceMatrix, int[][] neighborLists, int n) {
+    public void optimize(int[] genes, MemorySegment distanceMatrix, int[][] neighborLists, int n) {
         int processors = Runtime.getRuntime().availableProcessors();
         int segmentSize = (genes.length - 2) / processors;
         
@@ -25,8 +27,10 @@ public class PartitionedTwoOptOptimization extends LocalSearchOptimizer {
 
             for (int i = start; i < end - 1; i++) {
                 for (int j = i + 1; j < end; j++) {
-                    float d0 = distanceMatrix[genes[i-1]*n + genes[i]] + distanceMatrix[genes[j]*n + genes[j+1]];
-                    float d1 = distanceMatrix[genes[i-1]*n + genes[j]] + distanceMatrix[genes[i]*n + genes[j+1]];
+                    float d0 = distanceMatrix.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[i - 1] * n + genes[i]) + 
+                               distanceMatrix.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[j] * n + genes[j + 1]);
+                    float d1 = distanceMatrix.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[i - 1] * n + genes[j]) + 
+                               distanceMatrix.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[i] * n + genes[j + 1]);
                     
                     if (d1 < d0) {
                         reverse(genes, i, j);

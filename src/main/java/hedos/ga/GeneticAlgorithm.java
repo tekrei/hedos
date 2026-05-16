@@ -17,6 +17,7 @@ import hedos.ga.selection.SelectionFactory;
 
 import java.util.*;
 import java.util.stream.IntStream;
+import java.lang.foreign.MemorySegment;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,7 +120,7 @@ public class GeneticAlgorithm {
             if (generation % 5 == 0 && calculator instanceof TSPCostCalculator tsp) {
                 long lsStart = System.nanoTime();
                 int[] genes = population[0].genes();
-                float[] dist = tsp.getDistanceMatrix();
+                MemorySegment dist = tsp.getDistanceMatrix();
                 int n = targets.size();
 
                 LocalSearchOptimizer lso = localSearchFactory.get(gaParameters.getLocalOptimizationType());

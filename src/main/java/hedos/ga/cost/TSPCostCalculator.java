@@ -6,6 +6,10 @@ import hedos.ga.data.Point;
 import hedos.ga.data.GAParameters;
 import java.util.Comparator;
 import java.util.stream.IntStream;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteOrder;
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorOperators;
@@ -19,7 +23,7 @@ public class TSPCostCalculator implements CostCalculator {
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
 
     private List<Point> targets;
-    private float[] distanceMatrix;
+    private MemorySegment distanceMatrixSegment;
     private float[] targetXs, targetYs, targetZs;
     private int[][] neighborLists;
     private final GAParameters gaParams;
@@ -32,7 +36,7 @@ public class TSPCostCalculator implements CostCalculator {
     public void init(List<Point> targets) {
         this.targets = targets;
         int n = targets.size();
-        this.distanceMatrix = new float[n * n];
+        this.distanceMatrixSegment = Arena.ofAuto().allocate((long) n * n * Float.BYTES, ValueLayout.JAVA_FLOAT.byteAlignment());
         this.targetXs = new float[n];
         this.targetYs = new float[n];
         this.targetZs = new float[n];
@@ -79,7 +83,7 @@ public class TSPCostCalculator implements CostCalculator {
                         .add(dz.mul(dz))
                         .sqrt();
 
-                dists.intoArray(distanceMatrix, i * n + j, mask);
+                dists.intoMemorySegment(distanceMatrixSegment, (long) (i * n + j) * Float.BYTES, ByteOrder.nativeOrder(), mask);
             }
         });
     }
@@ -93,7 +97,7 @@ public class TSPCostCalculator implements CostCalculator {
         float totalDistance = 0.0f;
         int n = targets.size();
         for (int i = 0; i < genes.length - 1; i++) {
-            totalDistance += distanceMatrix[genes[i] * n + genes[i + 1]];
+            totalDistance += distanceMatrixSegment.getAtIndex(ValueLayout.JAVA_FLOAT, (long) genes[i] * n + genes[i + 1]);
         }
 
         // Include sharp turns in the primary cost calculation with a penalty
@@ -114,7 +118,7 @@ public class TSPCostCalculator implements CostCalculator {
             neighborLists[i] = IntStream.range(0, n)
                     .filter(j -> j != current)
                     .boxed()
-                    .sorted(Comparator.comparingDouble(j -> distanceMatrix[current * n + j]))
+                    .sorted(Comparator.comparingDouble(j -> distanceMatrixSegment.getAtIndex(ValueLayout.JAVA_FLOAT, (long) current * n + j)))
                     .limit(limit)
                     .mapToInt(Integer::intValue)
                     .toArray();
@@ -131,22 +135,20 @@ public class TSPCostCalculator implements CostCalculator {
         int n = genes.length;
         if (n < 3) return 0;
 
-        int bound = SPECIES.loopBound(n - 2);
-        int i = 0;
-
-        for (; i < bound; i += SPECIES.length()) {
+        for (int i = 0; i < n - 2; i += SPECIES.length()) {
+            var mask = SPECIES.indexInRange(i, n - 2);
             // Gather coordinates for points p1, p2, p3
-            var p1x = FloatVector.fromArray(SPECIES, targetXs, 0, genes, i);
-            var p1y = FloatVector.fromArray(SPECIES, targetYs, 0, genes, i);
-            var p1z = FloatVector.fromArray(SPECIES, targetZs, 0, genes, i);
+            var p1x = FloatVector.fromArray(SPECIES, targetXs, 0, genes, i, mask);
+            var p1y = FloatVector.fromArray(SPECIES, targetYs, 0, genes, i, mask);
+            var p1z = FloatVector.fromArray(SPECIES, targetZs, 0, genes, i, mask);
 
-            var p2x = FloatVector.fromArray(SPECIES, targetXs, 0, genes, i + 1);
-            var p2y = FloatVector.fromArray(SPECIES, targetYs, 0, genes, i + 1);
-            var p2z = FloatVector.fromArray(SPECIES, targetZs, 0, genes, i + 1);
+            var p2x = FloatVector.fromArray(SPECIES, targetXs, 0, genes, i + 1, mask);
+            var p2y = FloatVector.fromArray(SPECIES, targetYs, 0, genes, i + 1, mask);
+            var p2z = FloatVector.fromArray(SPECIES, targetZs, 0, genes, i + 1, mask);
 
-            var p3x = FloatVector.fromArray(SPECIES, targetXs, 0, genes, i + 2);
-            var p3y = FloatVector.fromArray(SPECIES, targetYs, 0, genes, i + 2);
-            var p3z = FloatVector.fromArray(SPECIES, targetZs, 0, genes, i + 2);
+            var p3x = FloatVector.fromArray(SPECIES, targetXs, 0, genes, i + 2, mask);
+            var p3y = FloatVector.fromArray(SPECIES, targetYs, 0, genes, i + 2, mask);
+            var p3z = FloatVector.fromArray(SPECIES, targetZs, 0, genes, i + 2, mask);
 
             // Calculate vectors v1 and v2
             var v1x = p2x.sub(p1x);
@@ -162,39 +164,19 @@ public class TSPCostCalculator implements CostCalculator {
             var mag2 = v2x.mul(v2x).add(v2y.mul(v2y)).add(v2z.mul(v2z)).sqrt();
 
             // Mask to avoid division by zero
-            var mask = mag1.compare(VectorOperators.GT, 0.0f).and(mag2.compare(VectorOperators.GT, 0.0f));
+            var validMask = mask.and(mag1.compare(VectorOperators.GT, 0.0f)).and(mag2.compare(VectorOperators.GT, 0.0f));
             var cosTheta = dot.div(mag1.mul(mag2))
                     .lanewise(VectorOperators.MIN, 1.0f)
                     .lanewise(VectorOperators.MAX, -1.0f);
 
             var angles = cosTheta.lanewise(VectorOperators.ACOS);
-            totalAngle += angles.reduceLanes(VectorOperators.ADD, mask);
-        }
-
-        // Scalar tail loop for remaining elements
-        for (; i < n - 2; i++) {
-            float v1x = targetXs[genes[i + 1]] - targetXs[genes[i]];
-            float v1y = targetYs[genes[i + 1]] - targetYs[genes[i]];
-            float v1z = targetZs[genes[i + 1]] - targetZs[genes[i]];
-
-            float v2x = targetXs[genes[i + 2]] - targetXs[genes[i + 1]];
-            float v2y = targetYs[genes[i + 2]] - targetYs[genes[i + 1]];
-            float v2z = targetZs[genes[i + 2]] - targetZs[genes[i + 1]];
-
-            float dot = v1x * v2x + v1y * v2y + v1z * v2z;
-            float mag1 = (float) Math.sqrt(v1x * v1x + v1y * v1y + v1z * v1z);
-            float mag2 = (float) Math.sqrt(v2x * v2x + v2y * v2y + v2z * v2z);
-
-            if (mag1 > 0 && mag2 > 0) {
-                float cosTheta = Math.max(-1f, Math.min(1f, dot / (mag1 * mag2)));
-                totalAngle += (float) Math.acos(cosTheta);
-            }
+            totalAngle += angles.reduceLanes(VectorOperators.ADD, validMask);
         }
         return totalAngle;
     }
 
-    public float[] getDistanceMatrix() {
-        return distanceMatrix;
+    public MemorySegment getDistanceMatrix() {
+        return distanceMatrixSegment;
     }
 
     public int[][] getNeighborLists() {

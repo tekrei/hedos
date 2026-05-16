@@ -12,6 +12,8 @@ import hedos.ga.data.Point;
 
 import javax.swing.*;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.StructuredTaskScope;
 import java.util.function.Consumer;
 
 /**
@@ -21,7 +23,7 @@ import java.util.function.Consumer;
 @Singleton
 public class GeneticAlgorithmService {
     private final Provider<GeneticAlgorithm> gaProvider;
-    private final CostCalculator calculator;
+    private final Provider<CostCalculator> calculatorProvider;
     private final GAParameters gaParameters;
 
     public record ProgressUpdate(int current, int total, float bestCost, long duration, long lsDuration, String lsoKey, boolean neighborhoodIncreased) {}
@@ -29,14 +31,15 @@ public class GeneticAlgorithmService {
 
     @Inject
     public GeneticAlgorithmService(Provider<GeneticAlgorithm> gaProvider, 
-                                   CostCalculator calculator, 
+                                   Provider<CostCalculator> calculatorProvider, 
                                    GAParameters gaParameters) {
         this.gaProvider = gaProvider;
-        this.calculator = calculator;
+        this.calculatorProvider = calculatorProvider;
         this.gaParameters = gaParameters;
     }
 
     public void calculate(List<Point> targets, Consumer<ProgressUpdate> progressConsumer, Consumer<Chromosome> onDone) {
+        CostCalculator calculator = calculatorProvider.get();
         if (calculator instanceof TSPCostCalculator tspCalc) {
             tspCalc.init(targets);
         }
@@ -71,16 +74,24 @@ public class GeneticAlgorithmService {
     public void runMultipleTests(List<Point> targets, int trialCount, Consumer<TestUpdate> eventConsumer, Runnable onComplete) {
         new SwingWorker<Void, TestUpdate>() {
             @Override
-            protected Void doInBackground() {
-                for (int i = 0; i < trialCount; i++) {
-                    publish(new TestUpdate(i + 1, trialCount, 0, false));
-                    if (calculator instanceof TSPCostCalculator tspCalc) {
-                        tspCalc.init(targets);
+            protected Void doInBackground() throws Exception {
+                try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll())) {
+                    for (int i = 0; i < trialCount; i++) {
+                        final int trialIndex = i + 1;
+                        publish(new TestUpdate(trialIndex, trialCount, 0, false));
+                        scope.fork(() -> {
+                            CostCalculator localCalc = calculatorProvider.get();
+                            if (localCalc instanceof TSPCostCalculator tspCalc) {
+                                tspCalc.init(targets);
+                            }
+                            GeneticAlgorithm ga = gaProvider.get();
+                            ga.setCalculator(localCalc);
+                            Chromosome best = ga.run(targets);
+                            publish(new TestUpdate(trialIndex, trialCount, best.cost(), true));
+                            return best;
+                        });
                     }
-                    GeneticAlgorithm ga = gaProvider.get();
-                    ga.setCalculator(calculator);
-                    Chromosome best = ga.run(targets);
-                    publish(new TestUpdate(i + 1, trialCount, best.cost(), true));
+                    scope.join();
                 }
                 return null;
             }
