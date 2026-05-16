@@ -13,9 +13,9 @@ import hedos.graphics.X3DEngine;
 import hedos.ui.PropertiesPanel;
 import hedos.ui.TargetManagementDialog;
 import hedos.ui.GenerateRandomTargetsDialog;
+import hedos.ui.DurationChartPanel;
 import hedos.utility.HedosModule;
 import hedos.utility.Messages;
-import hedos.utility.TargetGenerator;
 import hedos.utility.Settings;
 
 import javax.swing.*;
@@ -39,31 +39,36 @@ public class HedosFrame extends JFrame {
     private final GAParameters gaParams;
     private final X3DEngine engine;
     private final Settings settings;
-    private final TargetGenerator targetGenerator;
     private final CostCalculator calculator;
     private final EventBus eventBus;
     private final Provider<GeneticAlgorithm> gaProvider;
+    private final TargetManagementDialog.Factory targetMgmtFactory;
+    private final GenerateRandomTargetsDialog.Factory generateTargetsFactory;
 
     private JProgressBar progressBar;
     private JLabel statusLabel;
     private JLabel lastLogLabel;
+    private DurationChartPanel chartPanel;
     private JMenuBar menu;
 
-    public record ProgressData(int current, int total, float bestCost, String message) {}
+    public record ProgressData(int current, int total, float bestCost, long duration, String message) {}
 
     @Inject
     public HedosFrame(PropertiesPanel propertiesPanel, Messages messages, GAParameters gaParams, 
-                      X3DEngine engine, Settings settings, TargetGenerator targetGenerator, CostCalculator calculator, 
-                      EventBus eventBus, Provider<GeneticAlgorithm> gaProvider) {
+                      X3DEngine engine, Settings settings, CostCalculator calculator, 
+                      EventBus eventBus, Provider<GeneticAlgorithm> gaProvider,
+                      TargetManagementDialog.Factory targetMgmtFactory,
+                      GenerateRandomTargetsDialog.Factory generateTargetsFactory) {
         this.propertiesPanel = propertiesPanel;
         this.messages = messages;
         this.gaParams = gaParams;
         this.engine = engine;
         this.settings = settings;
-        this.targetGenerator = targetGenerator;
         this.calculator = calculator;
         this.eventBus = eventBus;
         this.gaProvider = gaProvider;
+        this.targetMgmtFactory = targetMgmtFactory;
+        this.generateTargetsFactory = generateTargetsFactory;
     }
 
     public static void main(String[] args) {
@@ -108,9 +113,12 @@ public class HedosFrame extends JFrame {
         lastLogLabel = new JLabel(" ");
         lastLogLabel.setFont(new Font("SansSerif", Font.ITALIC, 11));
 
+        chartPanel = new DurationChartPanel();
+
         JPanel statusPanel = new JPanel(new BorderLayout());
         statusPanel.add(progressBar, BorderLayout.CENTER);
         statusPanel.add(statusLabel, BorderLayout.EAST);
+        statusPanel.add(chartPanel, BorderLayout.NORTH);
 
         JPanel bottomPanel = new JPanel(new BorderLayout(0, 2));
         bottomPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -122,7 +130,8 @@ public class HedosFrame extends JFrame {
         this.add(splitPane, BorderLayout.CENTER);
         this.setJMenuBar(getMenu());
 
-        setSize(1280, 768);
+        setSize(1440, 900);
+        setLocationRelativeTo(null);
         setVisible(true);
     }
 
@@ -156,12 +165,12 @@ public class HedosFrame extends JFrame {
             settingsMenu.add(menuItem);
 
             menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_MANAGE_TARGETS));
-            menuItem.addActionListener(e -> new TargetManagementDialog(this, messages).setVisible(true));
+            menuItem.addActionListener(e -> targetMgmtFactory.create(this).setVisible(true));
             settingsMenu.add(menuItem);
 
             menuItem = new JMenuItem(messages.getString(MessageKeys.HEDOS_FRAME_GENERATE_TARGETS));
             menuItem.addActionListener(e -> {
-                GenerateRandomTargetsDialog dialog = new GenerateRandomTargetsDialog(this, messages, targetGenerator);
+                GenerateRandomTargetsDialog dialog = generateTargetsFactory.create(this);
                 dialog.setLocationRelativeTo(this);
                 dialog.setVisible(true);
             });
@@ -265,6 +274,7 @@ public class HedosFrame extends JFrame {
             return;
         }
 
+        chartPanel.clear();
         propertiesPanel.updateGPParameter();
         
         if (calculator instanceof TSPCostCalculator tspCalc) {
@@ -280,10 +290,10 @@ public class HedosFrame extends JFrame {
         SwingWorker<Chromosome, HedosFrame.ProgressData> worker = new SwingWorker<Chromosome, HedosFrame.ProgressData>() {
             @Override
             protected Chromosome doInBackground() {
-                ga.setProgressListener((current, total, bestCost) -> {
+                ga.setProgressListener((current, total, bestCost, duration) -> {
                     String msg = (current % 10 == 0 || current == total) ? 
-                        String.format("Generation %d: Best Fitness = %.2f", current, bestCost) : null;
-                    publish(new HedosFrame.ProgressData(current, total, bestCost, msg));
+                        String.format("Generation %d (%d ms): Best Fitness = %.2f", current, duration, bestCost) : null;
+                    publish(new HedosFrame.ProgressData(current, total, bestCost, duration, msg));
                 });
                 return ga.run(targets);
             }
@@ -294,6 +304,7 @@ public class HedosFrame extends JFrame {
                 
                 for (HedosFrame.ProgressData data : chunks) {
                     if (data.message() != null) log(data.message());
+                    chartPanel.addData(data.duration(), data.bestCost());
                 }
 
                 int percent = (int) (((float) latest.current() / latest.total()) * 100);

@@ -5,6 +5,9 @@ import java.awt.BorderLayout; // Explicit import
 import java.awt.Frame; // Explicit import
 import java.io.File;
 import java.io.IOException; // Explicit import
+import com.google.inject.assistedinject.Assisted;
+import com.google.inject.assistedinject.AssistedInject;
+import hedos.HedosFrame;
 
 import hedos.utility.MessageKeys;
 import hedos.utility.Messages;
@@ -17,7 +20,12 @@ public class GenerateRandomTargetsDialog extends JDialog {
     private final Messages messages;
     private final TargetGenerator targetGenerator;
 
-    public GenerateRandomTargetsDialog(Frame owner, Messages messages, TargetGenerator targetGenerator) {
+    public interface Factory {
+        GenerateRandomTargetsDialog create(HedosFrame owner);
+    }
+
+    @AssistedInject
+    public GenerateRandomTargetsDialog(@Assisted HedosFrame owner, Messages messages, TargetGenerator targetGenerator) {
         super(owner, messages.getString(MessageKeys.GENERATOR_TITLE), true);
         this.messages = messages;
         this.targetGenerator = targetGenerator;

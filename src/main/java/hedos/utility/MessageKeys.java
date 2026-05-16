@@ -94,9 +94,11 @@ public final class MessageKeys {
     public static final String CROSSOVER_TWO_POINT = "GA.Crossover.TwoPoint";
     public static final String CROSSOVER_UNIFORM = "GA.Crossover.Uniform";
     public static final String CROSSOVER_ORDERED = "GA.Crossover.Ordered";
+    public static final String CROSSOVER_VECTORIZED_UNIFORM = "GA.Crossover.VectorizedUniform";
     public static final String MUTATION_RANDOM = "GA.Mutation.Random";
     public static final String MUTATION_ONLY_IMPROVING_RANDOM = "GA.Mutation.OnlyImprovingRandom";
     public static final String MUTATION_ONLY_IMPROVING_SYSTEMATIC = "GA.Mutation.OnlyImprovingSystematic";
+    public static final String MUTATION_VECTORIZED_SCRAMBLE = "GA.Mutation.VectorizedScramble";
 
     public static final String SELECTION_TOURNAMENT = "GA.Selection.Tournament";
     public static final String SELECTION_ROULETTE_WHEEL = "GA.Selection.RouletteWheel";

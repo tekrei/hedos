@@ -10,8 +10,11 @@ import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 import com.google.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TSPCostCalculator implements CostCalculator {
+    private static final Logger logger = LoggerFactory.getLogger(TSPCostCalculator.class);
     private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
 
     private List<Point> targets;
@@ -54,7 +57,10 @@ public class TSPCostCalculator implements CostCalculator {
 
         costCache.clear();
         turnCache.clear();
+        
+        long start = System.nanoTime();
         precomputeDistances(n);
+        logger.info("Distance matrix ({}x{}) precomputation took {} ms", n, n, (System.nanoTime() - start) / 1_000_000.0);
     }
 
     private void precomputeDistances(int n) {
@@ -98,7 +104,12 @@ public class TSPCostCalculator implements CostCalculator {
 
         // Include sharp turns in the primary cost calculation with a penalty
         float turnPenalty = calculateTurnCost(genes);
-        return totalDistance + (turnPenalty * gaParams.getTurnPenaltyFactor());
+        
+        // Favor Scoped Parameters if available, otherwise use injected instance
+        float penaltyFactor = GAParameters.CURRENT.isBound() ? 
+            GAParameters.CURRENT.get().getTurnPenaltyFactor() : gaParams.getTurnPenaltyFactor();
+            
+        return totalDistance + (turnPenalty * penaltyFactor);
     }
 
     @Override

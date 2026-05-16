@@ -2,6 +2,7 @@ package hedos.ga;
 
 import com.google.inject.Singleton;
 import hedos.ga.data.Chromosome;
+import hedos.ga.data.GAParameters;
 import hedos.ga.data.CostCalculator;
 
 import java.time.Duration;
@@ -26,29 +27,32 @@ public class PopulationEvaluator {
         public List<Throwable> getFailures() { return failures; }
     }
 
-    public void evaluate(Chromosome[] population, CostCalculator calculator, long timeoutMs) {
-        try (var scope = new EvaluationScope()) {
-            for (Chromosome chromosome : population) {
-                if (!chromosome.isEvaluated()) {
-                    scope.fork(() -> {
-                        int[] genes = chromosome.genes();
-                        chromosome.setCost(calculator.calculateCost(genes));
-                        chromosome.setTurnCost(calculator.calculateTurnCost(genes));
-                        return null;
-                    });
+    public void evaluate(Chromosome[] population, CostCalculator calculator, GAParameters params) {
+        // Use Scoped Values to make params available to all virtual threads in this scope
+        ScopedValue.where(GAParameters.CURRENT, params).run(() -> {
+            try (var scope = new EvaluationScope()) {
+                for (Chromosome chromosome : population) {
+                    if (!chromosome.isEvaluated()) {
+                        scope.fork(() -> {
+                            int[] genes = chromosome.genes();
+                            chromosome.setCost(calculator.calculateCost(genes));
+                            chromosome.setTurnCost(calculator.calculateTurnCost(genes));
+                            return null;
+                        });
+                    }
                 }
+                
+                scope.joinUntil(Instant.now().plus(Duration.ofMillis(params.getEvaluationTimeout())));
+                
+                if (!scope.getFailures().isEmpty()) {
+                    handleFailures(scope.getFailures());
+                }
+            } catch (TimeoutException e) {
+                throw new RuntimeException("Population evaluation timed out after " + params.getEvaluationTimeout() + "ms", e);
+            } catch (Exception e) {
+                throw new RuntimeException("Population evaluation failed", e);
             }
-            
-            scope.joinUntil(Instant.now().plus(Duration.ofMillis(timeoutMs)));
-            
-            if (!scope.getFailures().isEmpty()) {
-                handleFailures(scope.getFailures());
-            }
-        } catch (TimeoutException e) {
-            throw new RuntimeException("Population evaluation timed out after " + timeoutMs + "ms", e);
-        } catch (Exception e) {
-            throw new RuntimeException("Population evaluation failed", e);
-        }
+        });
     }
 
     private void handleFailures(List<Throwable> failures) {

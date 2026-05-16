@@ -14,8 +14,11 @@ import hedos.ga.selection.SelectionFactory;
 import java.util.*;
 import java.util.stream.IntStream;
 import com.google.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GeneticAlgorithm {
+    private static final Logger logger = LoggerFactory.getLogger(GeneticAlgorithm.class);
     private List<Point> targets;
     private Chromosome[] population;
     private Chromosome best;
@@ -32,7 +35,7 @@ public class GeneticAlgorithm {
 
     @FunctionalInterface
     public interface ProgressListener {
-        void onProgress(int current, int total, float bestCost);
+        void onProgress(int current, int total, float bestCost, long durationMs);
     }
 
     @Inject
@@ -68,6 +71,7 @@ public class GeneticAlgorithm {
         initPopulation();
         cancelled = false;
 
+        long startTime = System.currentTimeMillis();
         int generation = 0;
         Crossover crossoverOperator = crossoverFactory.get(gaParameters.getCrossoverType());
         Mutation mutator = mutationFactory.get(gaParameters.getMutationType());
@@ -79,6 +83,7 @@ public class GeneticAlgorithm {
             }
             generation++;
 
+            long genStartTime = System.nanoTime();
             // Step 1: Selection (Parent Selection / Mating Pool)
             if (selectionOperator != null) {
                 // Parallelizing independent selection operations
@@ -96,14 +101,17 @@ public class GeneticAlgorithm {
                 population = mutator.mutate(population, gaParameters);
             }
 
-            evaluator.evaluate(population, calculator, gaParameters.getEvaluationTimeout());
+            evaluator.evaluate(population, calculator, gaParameters);
 
             Arrays.sort(population);
             elitism();
+            long genDuration = (System.nanoTime() - genStartTime) / 1_000_000;
+
             if (progressListener != null) {
-                progressListener.onProgress(generation, gaParameters.getGenerationCount(), best.cost());
+                progressListener.onProgress(generation, gaParameters.getGenerationCount(), best.cost(), genDuration);
             }
         }
+        logger.info("Genetic Algorithm finished {} generations in {} ms", generation, (System.currentTimeMillis() - startTime));
         return best;
     }
 

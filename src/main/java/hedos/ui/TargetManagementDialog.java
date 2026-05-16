@@ -6,6 +6,8 @@ import hedos.utility.Messages;
 import hedos.utility.MessageKeys;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.swing.FontIcon;
+import com.google.inject.assistedinject.Assisted;
+import com.google.inject.assistedinject.AssistedInject;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -29,7 +31,12 @@ public class TargetManagementDialog extends JDialog {
     private final DefaultListModel<Point> listModel = new DefaultListModel<>();
     private final JList<Point> targetList = new JList<>(listModel);
 
-    public TargetManagementDialog(HedosFrame frame, Messages messages) {
+    public interface Factory {
+        TargetManagementDialog create(HedosFrame frame);
+    }
+
+    @AssistedInject
+    public TargetManagementDialog(@Assisted HedosFrame frame, Messages messages) {
         super(frame, messages.getString(MessageKeys.SOL_PANEL_TARGET_MANAGEMENT), true);
         this.frame = frame;
         this.messages = messages;

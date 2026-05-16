@@ -39,6 +39,10 @@ public class Chromosome implements Comparable<Chromosome> {
         this.turnCost = turnCost;
     }
 
+    public void setEvaluated(boolean evaluated) {
+        this.evaluated = evaluated;
+    }
+
     @Override
     public String toString() {
         return String.format("[Cost: %.2f, TurnCost: %.2f] %s", cost, turnCost, Arrays.toString(genes));

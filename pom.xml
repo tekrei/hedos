@@ -123,6 +123,11 @@
             <version>7.0.0</version>
         </dependency>
         <dependency>
+            <groupId>com.google.inject.extensions</groupId>
+            <artifactId>guice-assistedinject</artifactId>
+            <version>7.0.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-swing</artifactId>
             <version>12.3.1</version>

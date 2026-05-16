@@ -10,11 +10,17 @@ import java.util.Random;
 @Singleton
 public class GAParameters {
 
+    /**
+     * Java 21 Scoped Value for passing parameters through evaluation scopes.
+     */
+    public static final ScopedValue<GAParameters> CURRENT = ScopedValue.newInstance();
+
     public enum CrossoverType {
         SINGLE_POINT(MessageKeys.CROSSOVER_SINGLE_POINT),
         TWO_POINT(MessageKeys.CROSSOVER_TWO_POINT),
         UNIFORM(MessageKeys.CROSSOVER_UNIFORM),
-        ORDERED(MessageKeys.CROSSOVER_ORDERED);
+        ORDERED(MessageKeys.CROSSOVER_ORDERED),
+        VECTORIZED_UNIFORM(MessageKeys.CROSSOVER_VECTORIZED_UNIFORM);
 
         private final String nameKey;
         CrossoverType(String nameKey) { this.nameKey = nameKey; }
@@ -30,7 +36,8 @@ public class GAParameters {
     public enum MutationType {
         RANDOM(MessageKeys.MUTATION_RANDOM),
         ONLY_IMPROVING_RANDOM(MessageKeys.MUTATION_ONLY_IMPROVING_RANDOM),
-        ONLY_IMPROVING_SYSTEMATIC(MessageKeys.MUTATION_ONLY_IMPROVING_SYSTEMATIC);
+        ONLY_IMPROVING_SYSTEMATIC(MessageKeys.MUTATION_ONLY_IMPROVING_SYSTEMATIC),
+        VECTORIZED_SCRAMBLE(MessageKeys.MUTATION_VECTORIZED_SCRAMBLE);
 
         private final String nameKey;
         MutationType(String nameKey) { this.nameKey = nameKey; }

@@ -2,7 +2,9 @@ package hedos.ga;
 
 import com.google.inject.Singleton;
 import jdk.incubator.vector.IntVector;
+import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorMask;
+import jdk.incubator.vector.VectorShuffle;
 import jdk.incubator.vector.VectorSpecies;
 
 import java.util.random.RandomGenerator;
@@ -79,6 +81,41 @@ public class ChromosomeFactory {
         
         repairGenes(child);
         return child;
+    }
+
+    /**
+     * Vectorized scramble mutation. Scrambles genes within SIMD lanes based on probability.
+     */
+    public void vectorizedMutate(int[] genes, float mutationRate) {
+        VectorSpecies<Integer> SPECIES = IntVector.SPECIES_PREFERRED;
+        int n = genes.length;
+
+        for (int i = 0; i < n; i += SPECIES.length()) {
+            var m = SPECIES.indexInRange(i, n);
+            
+            // Decide which lanes to mutate
+            boolean[] maskBits = new boolean[SPECIES.length()];
+            boolean anyMutation = false;
+            for (int k = 0; k < SPECIES.length(); k++) {
+                maskBits[k] = randomGenerator.nextFloat() < mutationRate;
+                if (maskBits[k]) anyMutation = true;
+            }
+
+            if (!anyMutation) continue;
+
+            var v = IntVector.fromArray(SPECIES, genes, i, m);
+            
+            // Create a random shuffle for this segment
+            int[] shuffleIdx = new int[SPECIES.length()];
+            for (int k = 0; k < SPECIES.length(); k++) shuffleIdx[k] = randomGenerator.nextInt(SPECIES.length());
+            var shuffle = VectorShuffle.fromArray(SPECIES, shuffleIdx, 0);
+            
+            var scrambled = v.rearrange(shuffle);
+            var mutationMask = SPECIES.loadMask(maskBits, 0).and(m);
+            
+            v.blend(scrambled, mutationMask).intoArray(genes, i, m);
+        }
+        repairGenes(genes);
     }
 
     public RandomGenerator getRandomGenerator() { return randomGenerator; }
