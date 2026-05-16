@@ -37,7 +37,7 @@ mvn clean compile exec:exec
 4. **Analysis**: Use the real-time **Duration Chart** to monitor performance. Click on the chart to view exact generation metrics in a persistent tooltip.
 5. **Persistence**: Save your best tour and detailed performance statistics using "File > Save Results".
 
-License: **Apache License 2.0**
+License: [**Apache License 2.0**](./LICENSE)
 
 ---
 
