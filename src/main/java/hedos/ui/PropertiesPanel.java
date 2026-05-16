@@ -46,11 +46,12 @@ public class PropertiesPanel extends JPanel {
     private JLabel crossoverValueLabel = new JLabel("0.00");
     private JLabel turnPenaltyValueLabel = new JLabel("0.00");
     private JSpinner tournamentSizeSpinner = null;
-    private JCheckBox elitismCheckBox;
     private JComboBox<GAParameters.CrossoverType> crossoverTypeCombo = null;
     private JComboBox<GAParameters.MutationType> mutationTypeCombo = null;
     private JComboBox<GAParameters.SelectionType> selectionTypeCombo = null;
     private JComboBox<GAParameters.LocalOptimizationType> localOptTypeCombo = null;
+    private JComboBox<GAParameters.StagnationType> stagnationTypeCombo = null;
+    private JComboBox<GAParameters.ElitismType> elitismTypeCombo = null;
     private JButton btnTravel = null;
     private JButton btnCalculate = null;
     private JButton btnClearSolution = null;
@@ -58,6 +59,8 @@ public class PropertiesPanel extends JPanel {
     private JButton btnMultipleCalculate = null;
     private JPanel gaSettingsPanel;
     private JPanel actionButtonPanel;
+    private JLabel lblPopulationSize, lblGenerationCount, lblCrossoverProb, lblMutationProb, lblTurnPenalty, lblTournamentSize;
+    private JLabel lblElitismStrategy, lblStagnationStrategy, lblMutationType, lblLocalOptimization, lblSelectionType, lblCrossoverType;
 
     @Inject
     public PropertiesPanel(Provider<HedosFrame> frameProvider, Messages messages, GAParameters gaParams, EventBus eventBus) {
@@ -70,8 +73,10 @@ public class PropertiesPanel extends JPanel {
 
     @Inject
     public void initialize() {
-        this.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        this.removeAll();
         this.setLayout(new GridBagLayout());
+        this.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 0, 5, 0);
@@ -85,54 +90,39 @@ public class PropertiesPanel extends JPanel {
         setupSectionPanel(gaSettingsPanel, messages.getString(MessageKeys.SIDE_PANEL_GA_SETTINGS));
 
         int currentGaGridY = 0;
-        currentGaGridY = addLabeledFieldToPanel(messages.getString(MessageKeys.SIDE_PANEL_POPULATION_SIZE), getPopulationSizeSpinner(), gaSettingsPanel, currentGaGridY);
-        currentGaGridY = addLabeledFieldToPanel(messages.getString(MessageKeys.SIDE_PANEL_GENERATION_COUNT), getGenerationCountSpinner(), gaSettingsPanel, currentGaGridY);
-        currentGaGridY = addSliderWithLabel(messages.getString(MessageKeys.SIDE_PANEL_CROSSOVER_PROBABILITY), getCrossoverProbabilitySlider(), crossoverValueLabel, gaSettingsPanel, currentGaGridY);
-        currentGaGridY = addSliderWithLabel(messages.getString(MessageKeys.SIDE_PANEL_MUTATION_PROBABILITY), getMutationProbabilitySlider(), mutationValueLabel, gaSettingsPanel, currentGaGridY);
-        currentGaGridY = addSliderWithLabel(messages.getString(MessageKeys.SIDE_PANEL_TURN_PENALTY), getTurnPenaltySlider(), turnPenaltyValueLabel, gaSettingsPanel, currentGaGridY);
-        currentGaGridY = addLabeledFieldToPanel(messages.getString(MessageKeys.SIDE_PANEL_TOURNAMENT_SIZE), getTournamentSizeSpinner(), gaSettingsPanel, currentGaGridY);
+        lblPopulationSize = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_POPULATION_SIZE));
+        currentGaGridY = addLabeledFieldToPanel(lblPopulationSize, getPopulationSizeSpinner(), gaSettingsPanel, currentGaGridY);
+        lblGenerationCount = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_GENERATION_COUNT));
+        currentGaGridY = addLabeledFieldToPanel(lblGenerationCount, getGenerationCountSpinner(), gaSettingsPanel, currentGaGridY);
+        lblCrossoverProb = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_CROSSOVER_PROBABILITY));
+        currentGaGridY = addSliderWithLabel(lblCrossoverProb, getCrossoverProbabilitySlider(), crossoverValueLabel, gaSettingsPanel, currentGaGridY);
+        lblMutationProb = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_MUTATION_PROBABILITY));
+        currentGaGridY = addSliderWithLabel(lblMutationProb, getMutationProbabilitySlider(), mutationValueLabel, gaSettingsPanel, currentGaGridY);
+        lblTurnPenalty = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_TURN_PENALTY));
+        currentGaGridY = addSliderWithLabel(lblTurnPenalty, getTurnPenaltySlider(), turnPenaltyValueLabel, gaSettingsPanel, currentGaGridY);
+        lblTournamentSize = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_TOURNAMENT_SIZE));
+        currentGaGridY = addLabeledFieldToPanel(lblTournamentSize, getTournamentSizeSpinner(), gaSettingsPanel, currentGaGridY);
+
+        lblElitismStrategy = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_ELITISM_STRATEGY));
+        currentGaGridY = addLabeledFieldToPanel(lblElitismStrategy, getElitismTypeCombo(), gaSettingsPanel, currentGaGridY);
+        lblStagnationStrategy = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_STAGNATION_STRATEGY));
+        currentGaGridY = addLabeledFieldToPanel(lblStagnationStrategy, getStagnationTypeCombo(), gaSettingsPanel, currentGaGridY);
+        lblMutationType = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_MUTATION_TYPE));
+        currentGaGridY = addLabeledFieldToPanel(lblMutationType, getMutationTypeCombo(), gaSettingsPanel, currentGaGridY);
+        lblLocalOptimization = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_LOCAL_OPTIMIZATION));
+        currentGaGridY = addLabeledFieldToPanel(lblLocalOptimization, getLocalOptTypeCombo(), gaSettingsPanel, currentGaGridY);
+        lblSelectionType = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_SELECTION_TYPE));
+        currentGaGridY = addLabeledFieldToPanel(lblSelectionType, getSelectionTypeCombo(), gaSettingsPanel, currentGaGridY);
+        lblCrossoverType = new JLabel(messages.getString(MessageKeys.SIDE_PANEL_CROSSOVER_TYPE));
+        currentGaGridY = addLabeledFieldToPanel(lblCrossoverType, getCrossoverTypeCombo(), gaSettingsPanel, currentGaGridY);
 
         GridBagConstraints typeGbc = new GridBagConstraints();
         typeGbc.fill = GridBagConstraints.HORIZONTAL;
         typeGbc.weightx = 1.0;
         typeGbc.gridx = 0;
         typeGbc.gridwidth = 2;
-
         typeGbc.gridy = currentGaGridY++;
-        typeGbc.insets = new Insets(5, 5, 5, 5);
-        gaSettingsPanel.add(getElitismCheckBox(), typeGbc);
-
-        typeGbc.gridy = currentGaGridY++;
-        typeGbc.insets = new Insets(2, 5, 0, 5);
-        gaSettingsPanel.add(new JLabel(messages.getString(MessageKeys.SIDE_PANEL_MUTATION_TYPE)), typeGbc);
-
-        typeGbc.gridy = currentGaGridY++;
-        typeGbc.insets = new Insets(0, 5, 5, 5);
-        gaSettingsPanel.add(getMutationTypeCombo(), typeGbc);
-
-        typeGbc.gridy = currentGaGridY++;
-        gaSettingsPanel.add(new JLabel("Local Optimization"), typeGbc);
-        typeGbc.gridy = currentGaGridY++;
-        gaSettingsPanel.add(getLocalOptTypeCombo(), typeGbc);
-
-        typeGbc.gridy = currentGaGridY++;
-        typeGbc.insets = new Insets(5, 5, 0, 5);
-        gaSettingsPanel.add(new JLabel(messages.getString(MessageKeys.SIDE_PANEL_SELECTION_TYPE)), typeGbc);
-
-        typeGbc.gridy = currentGaGridY++;
-        typeGbc.insets = new Insets(0, 5, 5, 5);
-        gaSettingsPanel.add(getSelectionTypeCombo(), typeGbc);
-
-        typeGbc.gridy = currentGaGridY++;
-        typeGbc.insets = new Insets(5, 5, 0, 5);
-        gaSettingsPanel.add(new JLabel(messages.getString(MessageKeys.SIDE_PANEL_CROSSOVER_TYPE)), typeGbc);
-
-        typeGbc.gridy = currentGaGridY++;
-        typeGbc.insets = new Insets(0, 5, 5, 5);
-        gaSettingsPanel.add(getCrossoverTypeCombo(), typeGbc);
-
-        typeGbc.gridy = currentGaGridY++;
-        typeGbc.insets = new Insets(10, 5, 5, 5);
+        typeGbc.insets = new Insets(5, 5, 2, 5);
         gaSettingsPanel.add(getBtnResetDefaults(), typeGbc);
 
         this.add(gaSettingsPanel, gbc);
@@ -146,7 +136,7 @@ public class PropertiesPanel extends JPanel {
         actionGbc.weightx = 1.0;
         actionGbc.gridx = 0;
         actionGbc.gridy = 0;
-        actionGbc.insets = new Insets(5, 5, 5, 5);
+        actionGbc.insets = new Insets(2, 5, 2, 5);
 
         actionButtonPanel.add(getBtnCalculate(), actionGbc);
         actionGbc.gridy++;
@@ -165,6 +155,7 @@ public class PropertiesPanel extends JPanel {
     }
 
     public void refreshLabels() {
+        if (gaSettingsPanel == null) return;
         setupSectionPanel(gaSettingsPanel, messages.getString(MessageKeys.SIDE_PANEL_GA_SETTINGS));
         setupSectionPanel(actionButtonPanel, messages.getString(MessageKeys.SIDE_PANEL_ACTIONS));
         
@@ -173,33 +164,49 @@ public class PropertiesPanel extends JPanel {
         btnTravel.setText(messages.getString(MessageKeys.SIDE_PANEL_TRAVEL));
         btnResetDefaults.setText(messages.getString(MessageKeys.SIDE_PANEL_RESET_DEFAULTS));
         btnMultipleCalculate.setText(messages.getString(MessageKeys.HEDOS_FRAME_MULTIPLE_TEST));
-        elitismCheckBox.setText(messages.getString(MessageKeys.SIDE_PANEL_ELITISM));
+        
+        btnCalculate.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_SOLVE_TOOLTIP));
+        btnTravel.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_TRAVEL_TOOLTIP));
+        btnClearSolution.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_CLEAR_SOLUTION_TOOLTIP));
+        btnMultipleCalculate.setToolTipText(messages.getString(MessageKeys.HEDOS_FRAME_MULTIPLE_TEST_TOOLTIP));
+
+        lblPopulationSize.setText(messages.getString(MessageKeys.SIDE_PANEL_POPULATION_SIZE));
+        lblGenerationCount.setText(messages.getString(MessageKeys.SIDE_PANEL_GENERATION_COUNT));
+        lblCrossoverProb.setText(messages.getString(MessageKeys.SIDE_PANEL_CROSSOVER_PROBABILITY));
+        lblMutationProb.setText(messages.getString(MessageKeys.SIDE_PANEL_MUTATION_PROBABILITY));
+        lblTurnPenalty.setText(messages.getString(MessageKeys.SIDE_PANEL_TURN_PENALTY));
+        lblTournamentSize.setText(messages.getString(MessageKeys.SIDE_PANEL_TOURNAMENT_SIZE));
+        lblElitismStrategy.setText(messages.getString(MessageKeys.SIDE_PANEL_ELITISM_STRATEGY));
+        lblStagnationStrategy.setText(messages.getString(MessageKeys.SIDE_PANEL_STAGNATION_STRATEGY));
+        lblMutationType.setText(messages.getString(MessageKeys.SIDE_PANEL_MUTATION_TYPE));
+        lblLocalOptimization.setText(messages.getString(MessageKeys.SIDE_PANEL_LOCAL_OPTIMIZATION));
+        lblSelectionType.setText(messages.getString(MessageKeys.SIDE_PANEL_SELECTION_TYPE));
+        lblCrossoverType.setText(messages.getString(MessageKeys.SIDE_PANEL_CROSSOVER_TYPE));
 
         // Refresh tooltips for sliders
-        if (crossoverProbabilitySlider != null) crossoverProbabilitySlider.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_CROSSOVER_PROBABILITY + ".Tooltip"));
-        if (mutationProbabilitySlider != null) mutationProbabilitySlider.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_MUTATION_PROBABILITY + ".Tooltip"));
-        if (turnPenaltySlider != null) turnPenaltySlider.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_TURN_PENALTY + ".Tooltip"));
+        crossoverProbabilitySlider.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_CROSSOVER_PROBABILITY + ".Tooltip"));
+        mutationProbabilitySlider.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_MUTATION_PROBABILITY + ".Tooltip"));
+        turnPenaltySlider.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_TURN_PENALTY + ".Tooltip"));
         
-        // Force refresh of the renderers in combos
+        syncAllTooltips();
         updateUI();
     }
 
-    // Helper method to add a labeled field pair to a panel
-    private int addLabeledFieldToPanel(String labelText, JComponent field, JPanel panel, int currentGridY) {
+    private int addLabeledFieldToPanel(JLabel label, JComponent field, JPanel panel, int currentGridY) {
         GridBagConstraints labelGbc = new GridBagConstraints();
         labelGbc.fill = GridBagConstraints.HORIZONTAL;
-        labelGbc.insets = new Insets(4, 5, 4, 5);
+        labelGbc.insets = new Insets(1, 5, 1, 5);
         labelGbc.gridwidth = 1;
-        labelGbc.weightx = 0.0; // Label takes minimal horizontal space
+        labelGbc.weightx = 0.45; 
         labelGbc.gridx = 0;
         labelGbc.gridy = currentGridY;
-        panel.add(new JLabel(labelText), labelGbc);
+        panel.add(label, labelGbc);
 
         GridBagConstraints fieldGbc = new GridBagConstraints();
         fieldGbc.fill = GridBagConstraints.HORIZONTAL;
-        fieldGbc.insets = new Insets(4, 5, 4, 5);
+        fieldGbc.insets = new Insets(1, 5, 1, 5);
         fieldGbc.gridwidth = 1;
-        fieldGbc.weightx = 1.0; // Field takes remaining horizontal space
+        fieldGbc.weightx = 0.55;
         fieldGbc.gridx = 1;
         fieldGbc.gridy = currentGridY;
         panel.add(field, fieldGbc);
@@ -207,27 +214,28 @@ public class PropertiesPanel extends JPanel {
         return currentGridY + 1; // Return the next available row
     }
 
-    private int addSliderWithLabel(String labelText, JSlider slider, JLabel valueLabel, JPanel panel, int currentGridY) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(4, 5, 0, 5);
-        gbc.gridwidth = 2;
-        gbc.gridx = 0;
-        gbc.gridy = currentGridY;
+    private int addSliderWithLabel(JLabel label, JSlider slider, JLabel valueLabel, JPanel panel, int currentGridY) {
+        GridBagConstraints labelGbc = new GridBagConstraints();
+        labelGbc.fill = GridBagConstraints.HORIZONTAL;
+        labelGbc.insets = new Insets(1, 5, 1, 5);
+        labelGbc.gridx = 0;
+        labelGbc.gridy = currentGridY;
+        labelGbc.weightx = 0.45;
+        panel.add(label, labelGbc);
 
-        // Label Row
-        panel.add(new JLabel(labelText), gbc);
-
-        // Slider Row
         JPanel sliderPanel = new JPanel(new BorderLayout(5, 0));
         sliderPanel.add(slider, BorderLayout.CENTER);
         sliderPanel.add(valueLabel, BorderLayout.EAST);
-        
-        gbc.gridy = currentGridY + 1;
-        gbc.insets = new Insets(0, 5, 4, 5);
-        panel.add(sliderPanel, gbc);
 
-        return currentGridY + 2;
+        GridBagConstraints fieldGbc = new GridBagConstraints();
+        fieldGbc.fill = GridBagConstraints.HORIZONTAL;
+        fieldGbc.insets = new Insets(1, 5, 1, 5);
+        fieldGbc.gridx = 1;
+        fieldGbc.gridy = currentGridY;
+        fieldGbc.weightx = 0.55;
+        panel.add(sliderPanel, fieldGbc);
+
+        return currentGridY + 1;
     }
 
     private void setupSectionPanel(JPanel panel, String title) {
@@ -236,8 +244,7 @@ public class PropertiesPanel extends JPanel {
                         BorderFactory.createEtchedBorder(), 
                         title, 
                         TitledBorder.LEFT, 
-                        TitledBorder.TOP, 
-                        new Font("SansSerif", Font.BOLD, 12)
+                        TitledBorder.TOP
                 ),
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)
         ));
@@ -297,12 +304,14 @@ public class PropertiesPanel extends JPanel {
     private JComboBox<GAParameters.MutationType> getMutationTypeCombo() {
         if (mutationTypeCombo == null) {
             mutationTypeCombo = new JComboBox<>(GAParameters.MutationType.values());
+            mutationTypeCombo.addActionListener(e -> syncComboTooltip(mutationTypeCombo, (GAParameters.MutationType) mutationTypeCombo.getSelectedItem()));
             mutationTypeCombo.setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                     if (value instanceof GAParameters.MutationType type) {
                         setText(messages.getString(type.getNameKey()));
+                        setToolTipText(messages.getString(type.getNameKey() + ".Tooltip"));
                     }
                     return this;
                 }
@@ -311,15 +320,55 @@ public class PropertiesPanel extends JPanel {
         return mutationTypeCombo;
     }
 
+    private JComboBox<GAParameters.StagnationType> getStagnationTypeCombo() {
+        if (stagnationTypeCombo == null) {
+            stagnationTypeCombo = new JComboBox<>(GAParameters.StagnationType.values());
+            stagnationTypeCombo.addActionListener(e -> syncComboTooltip(stagnationTypeCombo, (GAParameters.StagnationType) stagnationTypeCombo.getSelectedItem()));
+            stagnationTypeCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value instanceof GAParameters.StagnationType type) {
+                        setText(messages.getString(type.getNameKey()));
+                        setToolTipText(messages.getString(type.getNameKey() + ".Tooltip"));
+                    }
+                    return this;
+                }
+            });
+        }
+        return stagnationTypeCombo;
+    }
+
+    private JComboBox<GAParameters.ElitismType> getElitismTypeCombo() {
+        if (elitismTypeCombo == null) {
+            elitismTypeCombo = new JComboBox<>(GAParameters.ElitismType.values());
+            elitismTypeCombo.addActionListener(e -> syncComboTooltip(elitismTypeCombo, (GAParameters.ElitismType) elitismTypeCombo.getSelectedItem()));
+            elitismTypeCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value instanceof GAParameters.ElitismType type) {
+                        setText(messages.getString(type.getNameKey()));
+                        setToolTipText(messages.getString(type.getNameKey() + ".Tooltip"));
+                    }
+                    return this;
+                }
+            });
+        }
+        return elitismTypeCombo;
+    }
+
     private JComboBox<GAParameters.LocalOptimizationType> getLocalOptTypeCombo() {
         if (localOptTypeCombo == null) {
             localOptTypeCombo = new JComboBox<>(GAParameters.LocalOptimizationType.values());
+            localOptTypeCombo.addActionListener(e -> syncComboTooltip(localOptTypeCombo, (GAParameters.LocalOptimizationType) localOptTypeCombo.getSelectedItem()));
             localOptTypeCombo.setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                     if (value instanceof GAParameters.LocalOptimizationType type) {
                         setText(messages.getString(type.getNameKey()));
+                        setToolTipText(messages.getString(type.getNameKey() + ".Tooltip"));
                     }
                     return this;
                 }
@@ -331,12 +380,14 @@ public class PropertiesPanel extends JPanel {
     private JComboBox<GAParameters.SelectionType> getSelectionTypeCombo() {
         if (selectionTypeCombo == null) {
             selectionTypeCombo = new JComboBox<>(GAParameters.SelectionType.values());
+            selectionTypeCombo.addActionListener(e -> syncComboTooltip(selectionTypeCombo, (GAParameters.SelectionType) selectionTypeCombo.getSelectedItem()));
             selectionTypeCombo.setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                     if (value instanceof GAParameters.SelectionType type) {
                         setText(messages.getString(type.getNameKey()));
+                        setToolTipText(messages.getString(type.getNameKey() + ".Tooltip"));
                     }
                     return this;
                 }
@@ -348,12 +399,14 @@ public class PropertiesPanel extends JPanel {
     private JComboBox<GAParameters.CrossoverType> getCrossoverTypeCombo() {
         if (crossoverTypeCombo == null) {
             crossoverTypeCombo = new JComboBox<>(GAParameters.CrossoverType.values());
+            crossoverTypeCombo.addActionListener(e -> syncComboTooltip(crossoverTypeCombo, (GAParameters.CrossoverType) crossoverTypeCombo.getSelectedItem()));
             crossoverTypeCombo.setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                     if (value instanceof GAParameters.CrossoverType type) {
                         setText(messages.getString(type.getNameKey()));
+                        setToolTipText(messages.getString(type.getNameKey() + ".Tooltip"));
                     }
                     return this;
                 }
@@ -362,17 +415,35 @@ public class PropertiesPanel extends JPanel {
         return crossoverTypeCombo;
     }
 
-    private JCheckBox getElitismCheckBox() {
-        if (elitismCheckBox == null) {
-            elitismCheckBox = new JCheckBox(messages.getString(MessageKeys.SIDE_PANEL_ELITISM));
+    private void syncComboTooltip(JComboBox<?> combo, Object selectedValue) {
+        if (selectedValue == null) return;
+        String nameKey = "";
+        if (selectedValue instanceof GAParameters.MutationType t) nameKey = t.getNameKey();
+        else if (selectedValue instanceof GAParameters.CrossoverType t) nameKey = t.getNameKey();
+        else if (selectedValue instanceof GAParameters.SelectionType t) nameKey = t.getNameKey();
+        else if (selectedValue instanceof GAParameters.LocalOptimizationType t) nameKey = t.getNameKey();
+        else if (selectedValue instanceof GAParameters.StagnationType t) nameKey = t.getNameKey();
+        else if (selectedValue instanceof GAParameters.ElitismType t) nameKey = t.getNameKey();
+        
+        if (!nameKey.isEmpty()) {
+            combo.setToolTipText(messages.getString(nameKey + ".Tooltip"));
         }
-        return elitismCheckBox;
+    }
+
+    private void syncAllTooltips() {
+        syncComboTooltip(mutationTypeCombo, mutationTypeCombo.getSelectedItem());
+        syncComboTooltip(crossoverTypeCombo, crossoverTypeCombo.getSelectedItem());
+        syncComboTooltip(selectionTypeCombo, selectionTypeCombo.getSelectedItem());
+        syncComboTooltip(localOptTypeCombo, localOptTypeCombo.getSelectedItem());
+        syncComboTooltip(stagnationTypeCombo, stagnationTypeCombo.getSelectedItem());
+        syncComboTooltip(elitismTypeCombo, elitismTypeCombo.getSelectedItem());
     }
 
     private JButton getBtnTravel() {
         if (btnTravel == null) {
             btnTravel = new JButton(messages.getString(MessageKeys.SIDE_PANEL_TRAVEL));
             btnTravel.setIcon(FontIcon.of(FontAwesomeSolid.MAP_MARKED_ALT, 16));
+            btnTravel.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_TRAVEL_TOOLTIP));
             btnTravel.setMnemonic('d');
             btnTravel.addActionListener(e -> travelClicked());
         }
@@ -388,6 +459,7 @@ public class PropertiesPanel extends JPanel {
             btnCalculate = new JButton(messages.getString(MessageKeys.SIDE_PANEL_SOLVE));
             btnCalculate.setIcon(FontIcon.of(FontAwesomeSolid.CALCULATOR, 16, Color.WHITE));
             btnCalculate.setBackground(new Color(52, 120, 200));
+            btnCalculate.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_SOLVE_TOOLTIP));
             btnCalculate.setForeground(Color.WHITE);
             btnCalculate.setMnemonic('h');
             btnCalculate.addActionListener(e -> frameProvider.get().calculate());
@@ -399,6 +471,7 @@ public class PropertiesPanel extends JPanel {
         if (btnClearSolution == null) {
             btnClearSolution = new JButton(messages.getString(MessageKeys.SIDE_PANEL_CLEAR_SOLUTION));
             btnClearSolution.setIcon(FontIcon.of(FontAwesomeSolid.ERASER, 16));
+            btnClearSolution.setToolTipText(messages.getString(MessageKeys.SIDE_PANEL_CLEAR_SOLUTION_TOOLTIP));
             btnClearSolution.setMnemonic('l');
             btnClearSolution.addActionListener(e -> frameProvider.get().clearSolution());
         }
@@ -421,6 +494,7 @@ public class PropertiesPanel extends JPanel {
         if (btnMultipleCalculate == null) {
             btnMultipleCalculate = new JButton(messages.getString(MessageKeys.HEDOS_FRAME_MULTIPLE_TEST));
             btnMultipleCalculate.setIcon(FontIcon.of(FontAwesomeSolid.LAYER_GROUP, 16));
+            btnMultipleCalculate.setToolTipText(messages.getString(MessageKeys.HEDOS_FRAME_MULTIPLE_TEST_TOOLTIP));
             btnMultipleCalculate.setMnemonic('e');
             btnMultipleCalculate.addActionListener(e -> frameProvider.get().multipleCalculation());
         }
@@ -440,7 +514,8 @@ public class PropertiesPanel extends JPanel {
         gaParameters.setMutationType((GAParameters.MutationType) mutationTypeCombo.getSelectedItem());
         gaParameters.setLocalOptimizationType((GAParameters.LocalOptimizationType) localOptTypeCombo.getSelectedItem());
         gaParameters.setSelectionType((GAParameters.SelectionType) selectionTypeCombo.getSelectedItem());
-        gaParameters.setElitism(elitismCheckBox.isSelected());
+        gaParameters.setStagnationType((GAParameters.StagnationType) stagnationTypeCombo.getSelectedItem());
+        gaParameters.setElitismType((GAParameters.ElitismType) elitismTypeCombo.getSelectedItem());
     }
 
     public void updatePanel() {
@@ -466,7 +541,9 @@ public class PropertiesPanel extends JPanel {
         crossoverTypeCombo.setSelectedItem(gaParameters.getCrossoverType());
         localOptTypeCombo.setSelectedItem(gaParameters.getLocalOptimizationType());
         selectionTypeCombo.setSelectedItem(gaParameters.getSelectionType());
-        elitismCheckBox.setSelected(gaParameters.isElitism());
+        stagnationTypeCombo.setSelectedItem(gaParameters.getStagnationType());
+        elitismTypeCombo.setSelectedItem(gaParameters.getElitismType());
+        syncAllTooltips();
         this.updateUI();
     }
 }

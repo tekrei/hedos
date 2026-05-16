@@ -89,8 +89,12 @@ public class HedosFrame extends JFrame {
         // Subscribe to global settings changes
         eventBus.subscribe(EventBus.SettingsChangedEvent.class, e -> SwingUtilities.invokeLater(this::refreshTargets));
         
-        // Robust localization refresh
-        eventBus.subscribe(EventBus.LocaleChangedEvent.class, e -> SwingUtilities.invokeLater(this::refreshLabels));
+        // Full reactive UI refresh for localization
+        eventBus.subscribe(EventBus.LocaleChangedEvent.class, e -> SwingUtilities.invokeLater(() -> {
+            refreshLabels();
+            hedosMenu.setupMenu();
+            setJMenuBar(hedosMenu);
+        }));
     }
 
     private void uiInit() {
@@ -103,7 +107,7 @@ public class HedosFrame extends JFrame {
         });
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(300);
+        splitPane.setDividerLocation(400);
         splitPane.setDividerSize(0);
 
         splitPane.setLeftComponent(propertiesPanel);
@@ -261,7 +265,7 @@ public class HedosFrame extends JFrame {
         }, best -> {
             this.lastBestSolution = best;
             drawPath(best.genes());
-            log(messages.getString(MessageKeys.LOG_CALC_COMPLETE) + best.cost());
+            log(String.format(messages.getString(MessageKeys.LOG_CALC_COMPLETE), best.cost()));
             progressBar.setValue(0);
             statusLabel.setText(messages.getString(MessageKeys.STATUS_BAR_READY));
         });
@@ -299,7 +303,7 @@ public class HedosFrame extends JFrame {
                     log(String.format(messages.getString(MessageKeys.LOG_TRIAL_START), event.trial(), event.totalTrials()));
                 } else {
                     log(String.format(messages.getString(MessageKeys.LOG_TRIAL_FINISH), 
-                        event.trial(), event.cost()));
+                        event.trial(), event.totalTrials(), event.cost()));
                 }
             }, () -> log(messages.getString(MessageKeys.LOG_TRIALS_COMPLETE)));
         } catch (NumberFormatException e) {

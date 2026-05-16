@@ -20,10 +20,10 @@ public class GAParameters {
         TWO_POINT(MessageKeys.CROSSOVER_TWO_POINT),
         UNIFORM(MessageKeys.CROSSOVER_UNIFORM),
         ORDERED(MessageKeys.CROSSOVER_ORDERED),
-        VECTORIZED_UNIFORM(MessageKeys.CROSSOVER_VECTORIZED_UNIFORM),
-        PMX("GA.Crossover.PMX"),
-        CYCLE("GA.Crossover.Cycle"),
-        ERX("GA.Crossover.ERX");
+        VECTORIZED_UNIFORM(MessageKeys.CROSSOVER_VECTORIZED_UNIFORM), // Already defined
+        PMX(MessageKeys.CROSSOVER_PMX),
+        CYCLE(MessageKeys.CROSSOVER_CYCLE),
+        ERX(MessageKeys.CROSSOVER_ERX);
 
         private final String nameKey;
         CrossoverType(String nameKey) { this.nameKey = nameKey; }
@@ -40,9 +40,9 @@ public class GAParameters {
         RANDOM(MessageKeys.MUTATION_RANDOM),
         ONLY_IMPROVING_RANDOM(MessageKeys.MUTATION_ONLY_IMPROVING_RANDOM),
         ONLY_IMPROVING_SYSTEMATIC(MessageKeys.MUTATION_ONLY_IMPROVING_SYSTEMATIC),
-        VECTORIZED_SCRAMBLE(MessageKeys.MUTATION_VECTORIZED_SCRAMBLE),
-        INVERSION("GA.Mutation.Inversion"),
-        DISPLACEMENT("GA.Mutation.Displacement");
+        VECTORIZED_SCRAMBLE(MessageKeys.MUTATION_VECTORIZED_SCRAMBLE), // Already defined
+        INVERSION(MessageKeys.MUTATION_INVERSION),
+        DISPLACEMENT(MessageKeys.MUTATION_DISPLACEMENT);
 
         private final String nameKey;
         MutationType(String nameKey) { this.nameKey = nameKey; }
@@ -58,7 +58,7 @@ public class GAParameters {
     public enum SelectionType {
         TOURNAMENT(MessageKeys.SELECTION_TOURNAMENT),
         ROULETTE_WHEEL(MessageKeys.SELECTION_ROULETTE_WHEEL),
-        SUS("GA.Selection.SUS");
+        SUS(MessageKeys.SELECTION_SUS);
 
         private final String nameKey;
         SelectionType(String nameKey) { this.nameKey = nameKey; }
@@ -72,17 +72,43 @@ public class GAParameters {
         }
     }
 
+    public enum StagnationType {
+        SIMPLE(MessageKeys.STAGNATION_SIMPLE),
+        ANNEALING(MessageKeys.STAGNATION_ANNEALING);
+
+        private final String nameKey;
+        StagnationType(String nameKey) { this.nameKey = nameKey; }
+        public String getNameKey() { return nameKey; }
+        public static StagnationType fromKey(String key) {
+            for (StagnationType t : values()) if (t.nameKey.equals(key)) return t;
+            return SIMPLE;
+        }
+    }
+
+    public enum ElitismType {
+        NONE(MessageKeys.ELITISM_NONE),
+        DEFAULT(MessageKeys.ELITISM_DEFAULT);
+
+        private final String nameKey;
+        ElitismType(String nameKey) { this.nameKey = nameKey; }
+        public String getNameKey() { return nameKey; }
+        public static ElitismType fromKey(String key) {
+            for (ElitismType t : values()) if (t.nameKey.equals(key)) return t;
+            return NONE;
+        }
+    }
+
     public enum LocalOptimizationType {
-        NONE("GA.LocalOpt.None"),
-        TWO_OPT("GA.LocalOpt.2Opt"),
-        BEST_TWO_OPT("GA.LocalOpt.Best2Opt"),
-        THREE_OPT("GA.LocalOpt.3Opt"),
-        BEST_THREE_OPT("GA.LocalOpt.Best3Opt"),
-        LIMITED_THREE_OPT("GA.LocalOpt.Limited3Opt"),
-        PARTITIONED_2_OPT("GA.LocalOpt.Partitioned2Opt"),
-        PARTITIONED_3_OPT("GA.LocalOpt.Partitioned3Opt"),
-        LIN_KERNIGHAN("GA.LocalOpt.LinKernighan"),
-        MULTI_START_LIN_KERNIGHAN("GA.LocalOpt.MultiStartLK");
+        NONE(MessageKeys.LOCAL_OPT_NONE),
+        TWO_OPT(MessageKeys.LOCAL_OPT_TWO_OPT),
+        BEST_TWO_OPT(MessageKeys.LOCAL_OPT_BEST_TWO_OPT),
+        THREE_OPT(MessageKeys.LOCAL_OPT_THREE_OPT),
+        BEST_THREE_OPT(MessageKeys.LOCAL_OPT_BEST_THREE_OPT),
+        LIMITED_THREE_OPT(MessageKeys.LOCAL_OPT_LIMITED_THREE_OPT),
+        PARTITIONED_2_OPT(MessageKeys.LOCAL_OPT_PARTITIONED_2_OPT),
+        PARTITIONED_3_OPT(MessageKeys.LOCAL_OPT_PARTITIONED_3_OPT),
+        LIN_KERNIGHAN(MessageKeys.LOCAL_OPT_LIN_KERNIGHAN),
+        MULTI_START_LIN_KERNIGHAN(MessageKeys.LOCAL_OPT_MULTI_START_LK);
 
         private final String nameKey;
         LocalOptimizationType(String nameKey) { this.nameKey = nameKey; }
@@ -98,10 +124,11 @@ public class GAParameters {
     private int generationCount;
     private int populationSize;
     private float mutationProbability;
-    private boolean elitism;
     private float crossoverProbability;
     private MutationType mutationType;
     private CrossoverType crossoverType;
+    private StagnationType stagnationType;
+    private ElitismType elitismType;
     private SelectionType selectionType;
     private LocalOptimizationType localOptimizationType;
     private int tournamentSize;
@@ -120,12 +147,13 @@ public class GAParameters {
         this.generationCount = settings.getInt(MessageKeys.PARAM_GEN_COUNT, 100);
         this.populationSize = settings.getInt(MessageKeys.PARAM_POP_SIZE, 50);
         this.mutationProbability = settings.getFloat(MessageKeys.PARAM_MUT_PROB, 0.05f);
-        this.elitism = settings.getBoolean(MessageKeys.PARAM_ELITISM, false);
         this.crossoverProbability = settings.getFloat(MessageKeys.PARAM_CROSS_PROB, 0.8f);
 
         this.mutationType = MutationType.fromKey(settings.getString(MessageKeys.PARAM_MUT_TYPE));
         this.crossoverType = CrossoverType.fromKey(settings.getString(MessageKeys.PARAM_CROSS_TYPE));
         this.selectionType = SelectionType.fromKey(settings.getString(MessageKeys.PARAM_SEL_TYPE));
+        this.stagnationType = StagnationType.fromKey(settings.getString(MessageKeys.PARAM_STAGNATION_TYPE));
+        this.elitismType = ElitismType.fromKey(settings.getString(MessageKeys.PARAM_ELITISM_TYPE));
         this.localOptimizationType = LocalOptimizationType.fromKey(settings.getString("localOptimizationType"));
 
         this.neighborhoodSize = settings.getInt("neighborhoodSize", 20);
@@ -138,12 +166,13 @@ public class GAParameters {
         settings.set(MessageKeys.PARAM_GEN_COUNT, generationCount);
         settings.set(MessageKeys.PARAM_POP_SIZE, populationSize);
         settings.set(MessageKeys.PARAM_MUT_PROB, mutationProbability);
-        settings.set(MessageKeys.PARAM_ELITISM, elitism);
         settings.set(MessageKeys.PARAM_CROSS_PROB, crossoverProbability);
         settings.set("localOptimizationType", localOptimizationType.getNameKey());
         settings.set(MessageKeys.PARAM_MUT_TYPE, mutationType.getNameKey());
         settings.set(MessageKeys.PARAM_CROSS_TYPE, crossoverType.getNameKey());
         settings.set(MessageKeys.PARAM_SEL_TYPE, selectionType.getNameKey());
+        settings.set(MessageKeys.PARAM_STAGNATION_TYPE, stagnationType.getNameKey());
+        settings.set(MessageKeys.PARAM_ELITISM_TYPE, elitismType.getNameKey());
         settings.set("neighborhoodSize", neighborhoodSize);
         settings.set(MessageKeys.PARAM_TOUR_SIZE, tournamentSize);
         settings.set(MessageKeys.PARAM_TURN_PENALTY, turnPenaltyFactor);
@@ -165,8 +194,7 @@ public class GAParameters {
     public float getMutationProbability() { return mutationProbability; }
     public void setMutationProbability(float mutationProbability) { this.mutationProbability = mutationProbability; }
 
-    public boolean isElitism() { return elitism; }
-    public void setElitism(boolean elitism) { this.elitism = elitism; }
+    public boolean isElitism() { return elitismType != ElitismType.NONE; }
 
     public float getCrossoverProbability() { return crossoverProbability; }
     public void setCrossoverProbability(float crossoverProbability) { this.crossoverProbability = crossoverProbability; }
@@ -179,6 +207,12 @@ public class GAParameters {
 
     public SelectionType getSelectionType() { return selectionType; }
     public void setSelectionType(SelectionType selectionType) { this.selectionType = selectionType; }
+
+    public StagnationType getStagnationType() { return stagnationType; }
+    public void setStagnationType(StagnationType stagnationType) { this.stagnationType = stagnationType; }
+
+    public ElitismType getElitismType() { return elitismType; }
+    public void setElitismType(ElitismType elitismType) { this.elitismType = elitismType; }
 
     public LocalOptimizationType getLocalOptimizationType() { return localOptimizationType; }
     public void setLocalOptimizationType(LocalOptimizationType type) { this.localOptimizationType = type; }

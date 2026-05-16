@@ -6,18 +6,18 @@ Originally developed for an MSc thesis in 2006, it has been modernized to use **
 
 ## Key Features
 
-- **Java 25 Modernization**: Utilizes **Virtual Threads**, finalized **Structured Concurrency**, and **Scoped Values** to manage execution context across parallel tasks without the overhead of ThreadLocals.
-- **High-Performance Math & Memory**: Leverages the **Vector API (SIMD)** for lightning-fast calculations and the **Foreign Function & Memory (FFM) API** for optimized off-heap data management.
-- **Robust Architecture**: Built with **Google Guice (DI)**, **Jackson (YAML)**, and an **EventBus** for clean separation of concerns.
-- **Interactive Visualization**: Real-time performance charting with persistent tooltips and 3D path rendering.
+- **Java 25 Modernization**: Utilizes **Virtual Threads**, finalized **Structured Concurrency (Joiners)**, and **Scoped Values** for clean, immutable, and scalable context propagation across parallel execution scopes.
+- **High-Performance Math & Memory**: Leverages the **Vector API (SIMD)** for lightning-fast calculations and the **Foreign Function & Memory (FFM) API** for optimized off-heap management of distance matrices and population genomes.
+- **Robust Architecture**: Built with **Google Guice (DI)**, **Jackson (YAML)**, and a reactive **EventBus** for clean separation of concerns and thread-safe, event-driven UI localization.
+- **Interactive Visualization**: Real-time performance charting with persistent tooltips, 3D path rendering, and a compact, localized configuration side panel.
 - **Scientific Benchmarking**: Integrated **JMH (Java Microbenchmark Harness)** suite to quantify SIMD speedups and memory throughput directly from the UI.
  
 ### Why the FFM API?
 
 Traditional Java arrays are indexed by `int`, limiting them to approximately 2.1 billion elements. For large-scale 3D TSP problems, the $N^2$ distance matrix can easily exceed this limit. By using the **FFM API** (`MemorySegment`):
 - **Beyond the 2GB Limit**: We utilize `long` addressing to support massive coordinate datasets.
-- **GC Efficiency**: Memory is allocated via `Arena.ofAuto()`, providing a deterministic lifecycle that reduces Garbage Collection overhead during heavy local search iterations.
-- **Native Hardware Alignment**: `MemorySegment` allows for precise memory alignment, which is critical for the **Vector API** to perform "aligned loads," resulting in maximum SIMD throughput.
+- **GC Efficiency**: Memory for distance matrices and population genomes is allocated via `Arena.ofAuto()`, reducing heap pressure and providing a foundation for zero-copy variation.
+- **Native Hardware Alignment**: `MemorySegment` allows for precise **64-byte alignment** (AVX-512 compatible), enabling the **Vector API** to perform peak-performance "aligned loads."
 
 ## Optimization Algorithms
 
@@ -63,10 +63,20 @@ HeDoS implements several state-of-the-art algorithms for solving the 3D Travelli
 - **Maven 3.8+**: Used for dependency management and build orchestration.
 - **Xj3D Libraries**: See the manual installation section below.
 
-### Build and Run
+### Quick Start
 
-To compile and launch the application, use the following Maven command:
+The project includes helper scripts for a streamlined setup:
 
+1. **Install Dependencies**: Copy required Xj3D JARs to `lib/` and run:
+   ```bash
+   ./install_deps.sh
+   ```
+2. **Build and Run**:
+   ```bash
+   ./run.sh
+   ```
+
+Alternatively, use Maven directly:
 ```bash
 mvn clean compile exec:exec
 ```
@@ -74,11 +84,11 @@ mvn clean compile exec:exec
 ## Usage
 
 1.  **Targets**: Manage 3D points via the "Manage Targets" dialog or generate random datasets through "File > Generate Random Targets".
-2.  **Configuration**: Adjust GA parameters (Population, Mutation, Crossover) in the side panel. 
+2.  **Configuration**: Adjust GA parameters (Population, Mutation, Crossover, Elitism, Stagnation) in the localized side panel. Hover over ComboBox items to see strategy descriptions.
 3.  **Hybrid GA**: Select a **Local Optimization** strategy (e.g., Lin-Kernighan or Parallel 3-Opt) to significantly improve solution quality.
 4.  **Benchmarking**: Scientific validation of optimizations is available via the **Benchmark** menu. Results are displayed in a detailed dialog after the JMH suite completes.
-5.  **Analysis**: Use the real-time **Duration Chart** to monitor performance. Click on the chart to view exact generation metrics in a persistent tooltip.
-6.  **Persistence**: Save your best tour and detailed performance statistics using "File > Save Results".
+5.  **Analysis**: Use the real-time **Duration Chart** to monitor total time, local search time, and fitness. Click on the chart to view exact generation metrics in a persistent tooltip.
+6.  **Persistence**: Save your best tour, settings, or performance statistics using the "File" menu.
 
 License: [**Apache License 2.0**](./LICENSE)
 

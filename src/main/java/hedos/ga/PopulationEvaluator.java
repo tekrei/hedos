@@ -38,7 +38,8 @@ public class PopulationEvaluator {
         // Note: CALCULATOR is usually already bound by the GA or Service layer.
         ScopedValue.where(GAParameters.CURRENT, params).run(() -> {
             try (var scope = StructuredTaskScope.open(new EvaluationJoiner(),
-                    cfg -> cfg.withTimeout(Duration.ofMillis(params.getEvaluationTimeout())))) {
+                    cfg -> cfg.withName("Population-Evaluator")
+                              .withTimeout(Duration.ofMillis(params.getEvaluationTimeout())))) {
                 for (int i = 0; i < population.length; i += BATCH_SIZE) {
                     final int start = i;
                     final int end = Math.min(i + BATCH_SIZE, population.length);

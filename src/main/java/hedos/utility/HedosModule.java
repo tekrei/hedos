@@ -9,7 +9,14 @@ import hedos.ga.GeneticAlgorithmService;
 import hedos.ga.PopulationEvaluator;
 import hedos.ga.cost.CostCalculator;
 import hedos.ga.cost.TSPCostCalculator;
+import hedos.ga.elitism.DefaultElitismHandler;
+import hedos.ga.elitism.ElitismHandler;
+import hedos.ga.elitism.ElitismHandlerFactory;
 import hedos.ga.lso.*;
+import hedos.ga.stagnation.AnnealingStagnationHandler;
+import hedos.ga.stagnation.DefaultStagnationHandler;
+import hedos.ga.stagnation.StagnationHandler;
+import hedos.ga.stagnation.StagnationHandlerFactory;
 import hedos.utility.PersistenceService;
 import hedos.ga.crossover.*;
 import hedos.ga.data.*;
@@ -35,6 +42,8 @@ public class HedosModule extends AbstractModule {
         bind(TargetGenerator.class).in(Scopes.SINGLETON);
         bind(ChromosomeFactory.class).in(Scopes.SINGLETON);
         bind(PopulationEvaluator.class).in(Scopes.SINGLETON);
+        bind(StagnationHandlerFactory.class).in(Scopes.SINGLETON);
+        bind(ElitismHandlerFactory.class).in(Scopes.SINGLETON);
         bind(PersistenceService.class).in(Scopes.SINGLETON);
         bind(GeneticAlgorithmService.class).in(Scopes.SINGLETON);
         bind(HedosMenu.class).in(Scopes.SINGLETON);
@@ -67,6 +76,18 @@ public class HedosModule extends AbstractModule {
         lsoBinder.addBinding(GAParameters.LocalOptimizationType.PARTITIONED_3_OPT).to(PartitionedThreeOptOptimization.class);
         lsoBinder.addBinding(GAParameters.LocalOptimizationType.LIN_KERNIGHAN).to(LinKernighanOptimization.class);
         lsoBinder.addBinding(GAParameters.LocalOptimizationType.MULTI_START_LIN_KERNIGHAN).to(MultiStartLocalSearch.class);
+
+        // Stagnation MapBinder - Strategies maintain state, so we bind them without Singleton scope
+        MapBinder<GAParameters.StagnationType, StagnationHandler> stagnationBinder = 
+            MapBinder.newMapBinder(binder(), GAParameters.StagnationType.class, StagnationHandler.class);
+        stagnationBinder.addBinding(GAParameters.StagnationType.SIMPLE).to(DefaultStagnationHandler.class);
+        stagnationBinder.addBinding(GAParameters.StagnationType.ANNEALING).to(AnnealingStagnationHandler.class);
+
+        // Elitism MapBinder
+        MapBinder<GAParameters.ElitismType, ElitismHandler> elitismBinder = 
+            MapBinder.newMapBinder(binder(), GAParameters.ElitismType.class, ElitismHandler.class);
+        elitismBinder.addBinding(GAParameters.ElitismType.DEFAULT).to(DefaultElitismHandler.class);
+        elitismBinder.addBinding(GAParameters.ElitismType.NONE).to(DefaultElitismHandler.class);
 
         // Configure Mutation MapBinder for MutationFactory
         MapBinder<GAParameters.MutationType, Mutation> mutationBinder = 

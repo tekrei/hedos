@@ -20,6 +20,8 @@ public final class MessageKeys {
     public static final String PARAM_MUT_TYPE = "mutationType";
     public static final String PARAM_CROSS_TYPE = "crossoverType";
     public static final String PARAM_SEL_TYPE = "selectionType";
+    public static final String PARAM_STAGNATION_TYPE = "stagnationType";
+    public static final String PARAM_ELITISM_TYPE = "elitismType";
     public static final String PARAM_TOUR_SIZE = "tournamentSize";
     public static final String PARAM_TURN_PENALTY = "turnPenaltyFactor";
     public static final String PARAM_EVAL_TIMEOUT = "evaluationTimeout";
@@ -57,7 +59,10 @@ public final class MessageKeys {
     public static final String SIDE_PANEL_MUTATION_PROBABILITY = "SidePanel.MutationProbability";
     public static final String SIDE_PANEL_TURN_PENALTY = "SidePanel.TurnPenalty";
     public static final String SIDE_PANEL_TOURNAMENT_SIZE = "SidePanel.TournamentSize";
+    public static final String SIDE_PANEL_STAGNATION_STRATEGY = "SidePanel.StagnationStrategy";
+    public static final String SIDE_PANEL_ELITISM_STRATEGY = "SidePanel.ElitismStrategy";
     public static final String SIDE_PANEL_ELITISM = "SidePanel.Elitism";
+    public static final String SIDE_PANEL_LOCAL_OPTIMIZATION = "SidePanel.LocalOptimization";
     public static final String SIDE_PANEL_MUTATION_TYPE = "SidePanel.MutationType";
     public static final String SIDE_PANEL_SELECTION_TYPE = "SidePanel.SelectionType";
     public static final String SIDE_PANEL_CROSSOVER_TYPE = "SidePanel.CrossoverType";
@@ -66,6 +71,10 @@ public final class MessageKeys {
     public static final String SIDE_PANEL_CLEAR_SOLUTION = "SidePanel.ClearSolution";
     public static final String SIDE_PANEL_TRAVEL = "SidePanel.Travel";
     public static final String SIDE_PANEL_RESET_DEFAULTS = "SidePanel.ResetDefaults";
+    public static final String SIDE_PANEL_SOLVE_TOOLTIP = "SidePanel.Solve.Tooltip";
+    public static final String SIDE_PANEL_TRAVEL_TOOLTIP = "SidePanel.Travel.Tooltip";
+    public static final String SIDE_PANEL_CLEAR_SOLUTION_TOOLTIP = "SidePanel.ClearSolution.Tooltip";
+    public static final String HEDOS_FRAME_MULTIPLE_TEST_TOOLTIP = "HedosFrame.MultipleTest.Tooltip";
 
     public static final String GENERATOR_TITLE = "Generator.Title";
     public static final String GENERATOR_TARGET_COUNT = "Generator.TargetCount";
@@ -98,13 +107,35 @@ public final class MessageKeys {
     public static final String CROSSOVER_UNIFORM = "GA.Crossover.Uniform";
     public static final String CROSSOVER_ORDERED = "GA.Crossover.Ordered";
     public static final String CROSSOVER_VECTORIZED_UNIFORM = "GA.Crossover.VectorizedUniform";
+    public static final String CROSSOVER_PMX = "GA.Crossover.PMX";
+    public static final String CROSSOVER_CYCLE = "GA.Crossover.Cycle";
+    public static final String CROSSOVER_ERX = "GA.Crossover.ERX";
     public static final String MUTATION_RANDOM = "GA.Mutation.Random";
     public static final String MUTATION_ONLY_IMPROVING_RANDOM = "GA.Mutation.OnlyImprovingRandom";
     public static final String MUTATION_ONLY_IMPROVING_SYSTEMATIC = "GA.Mutation.OnlyImprovingSystematic";
     public static final String MUTATION_VECTORIZED_SCRAMBLE = "GA.Mutation.VectorizedScramble";
+    public static final String MUTATION_INVERSION = "GA.Mutation.Inversion";
+    public static final String MUTATION_DISPLACEMENT = "GA.Mutation.Displacement";
+
+    public static final String STAGNATION_SIMPLE = "GA.Stagnation.Simple";
+    public static final String STAGNATION_ANNEALING = "GA.Stagnation.Annealing";
+    public static final String ELITISM_NONE = "GA.Elitism.None";
+    public static final String ELITISM_DEFAULT = "GA.Elitism.Default";
 
     public static final String SELECTION_TOURNAMENT = "GA.Selection.Tournament";
     public static final String SELECTION_ROULETTE_WHEEL = "GA.Selection.RouletteWheel";
+    public static final String SELECTION_SUS = "GA.Selection.SUS";
+
+    public static final String LOCAL_OPT_NONE = "GA.LocalOpt.None";
+    public static final String LOCAL_OPT_TWO_OPT = "GA.LocalOpt.2Opt";
+    public static final String LOCAL_OPT_BEST_TWO_OPT = "GA.LocalOpt.Best2Opt";
+    public static final String LOCAL_OPT_THREE_OPT = "GA.LocalOpt.3Opt";
+    public static final String LOCAL_OPT_BEST_THREE_OPT = "GA.LocalOpt.Best3Opt";
+    public static final String LOCAL_OPT_LIMITED_THREE_OPT = "GA.LocalOpt.Limited3Opt";
+    public static final String LOCAL_OPT_PARTITIONED_2_OPT = "GA.LocalOpt.Partitioned2Opt";
+    public static final String LOCAL_OPT_PARTITIONED_3_OPT = "GA.LocalOpt.Partitioned3Opt";
+    public static final String LOCAL_OPT_LIN_KERNIGHAN = "GA.LocalOpt.LinKernighan";
+    public static final String LOCAL_OPT_MULTI_START_LK = "GA.LocalOpt.MultiStartLK";
 
     // Tooltips for PropertiesPanel
     public static final String SIDE_PANEL_CROSSOVER_PROBABILITY_TOOLTIP = "SidePanel.CrossoverProbability.Tooltip";

@@ -118,10 +118,11 @@ public class TSPCostCalculator implements CostCalculator {
         neighborLists = new int[n][limit];
         IntStream.range(0, n).parallel().forEach(i -> {
             final int current = i;
+            final long rowOffset = (long) current * n;
             neighborLists[i] = IntStream.range(0, n)
                     .filter(j -> j != current)
                     .boxed()
-                    .sorted(Comparator.comparingDouble(j -> distanceMatrixSegment.getAtIndex(ValueLayout.JAVA_FLOAT, (long) current * n + j)))
+                    .sorted(Comparator.comparingDouble(j -> distanceMatrixSegment.getAtIndex(ValueLayout.JAVA_FLOAT, rowOffset + j)))
                     .limit(limit)
                     .mapToInt(Integer::intValue)
                     .toArray();

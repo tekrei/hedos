@@ -8,6 +8,8 @@ import hedos.ga.data.Chromosome;
 import hedos.ga.data.ChromosomeFactory;
 import hedos.ga.data.GAParameters;
 import hedos.ga.data.Point;
+import hedos.ga.elitism.ElitismHandler;
+import hedos.ga.elitism.ElitismHandlerFactory;
 import hedos.ga.mutation.Mutation;
 import hedos.ga.mutation.MutationFactory;
 import hedos.ga.lso.LocalSearchFactory;
@@ -15,6 +17,8 @@ import hedos.ga.lso.LSORuntime;
 import hedos.ga.lso.LocalSearchOptimizer;
 import hedos.ga.selection.Selection;
 import hedos.ga.selection.SelectionFactory;
+import hedos.ga.stagnation.StagnationHandler;
+import hedos.ga.stagnation.StagnationHandlerFactory;
 
 import java.util.*;
 import java.time.Duration;
@@ -38,13 +42,14 @@ public class GeneticAlgorithm {
     private final ChromosomeFactory chromosomeFactory;
     private final LocalSearchFactory localSearchFactory;
     private final PopulationEvaluator evaluator;
+    private final StagnationHandlerFactory stagnationFactory;
+    private final ElitismHandlerFactory elitismFactory;
 
     public static final ScopedValue<ProgressListener> PROGRESS_LISTENER = ScopedValue.newInstance();
 
     private CostCalculator calculator;
     private MemorySegment populationSegment; // Off-heap storage for all genes
     private volatile boolean cancelled = false;
-    private int stagnationCount = 0;
 
     @FunctionalInterface
     public interface ProgressListener {
@@ -58,7 +63,9 @@ public class GeneticAlgorithm {
                             SelectionFactory selectionFactory,
                             ChromosomeFactory chromosomeFactory,
                             LocalSearchFactory localSearchFactory,
-                            PopulationEvaluator evaluator) {
+                            PopulationEvaluator evaluator,
+                            StagnationHandlerFactory stagnationFactory,
+                            ElitismHandlerFactory elitismFactory) {
         this.gaParameters = gaParameters;
         this.crossoverFactory = crossoverFactory;
         this.mutationFactory = mutationFactory;
@@ -66,6 +73,8 @@ public class GeneticAlgorithm {
         this.chromosomeFactory = chromosomeFactory;
         this.localSearchFactory = localSearchFactory;
         this.evaluator = evaluator;
+        this.stagnationFactory = stagnationFactory;
+        this.elitismFactory = elitismFactory;
     }
 
     public void setCalculator(CostCalculator calculator) {
@@ -81,10 +90,13 @@ public class GeneticAlgorithm {
         best = null;
         initPopulation();
         cancelled = false;
+        
+        StagnationHandler stagnationHandler = stagnationFactory.get(gaParameters.getStagnationType());
+        ElitismHandler elitismHandler = elitismFactory.get(gaParameters.getElitismType());
+        stagnationHandler.reset();
 
         long startTime = System.currentTimeMillis();
         int generation = 0;
-        stagnationCount = 0;
         Crossover crossoverOperator = crossoverFactory.get(gaParameters.getCrossoverType());
         Mutation mutator = mutationFactory.get(gaParameters.getMutationType());
         Selection selectionOperator = selectionFactory.get(gaParameters.getSelectionType());
@@ -98,17 +110,25 @@ public class GeneticAlgorithm {
             long genStartTime = System.nanoTime();
             // Step 1: Selection (Parent Selection / Mating Pool)
             if (selectionOperator != null) {
+                final int currentGen = generation;
+                final Chromosome[] currentPop = population;
                 try {
                     population = ScopedValue.where(GAParameters.CURRENT, gaParameters).call(() -> {
-                        try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll())) {
+                        // Use Config to name the scope for JFR / Debugging
+                        try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll(), 
+                                cfg -> cfg.withName("GA-Selection-Gen-" + currentGen))) {
                             var tasks = new ArrayList<StructuredTaskScope.Subtask<Chromosome>>();
-                            for (int i = 0; i < population.length; i++) {
-                                tasks.add(scope.fork(() -> selectionOperator.select(population, gaParameters.getTournamentSize())));
+                            int tSize = gaParameters.getTournamentSize();
+                            for (int i = 0; i < currentPop.length; i++) {
+                                tasks.add(scope.fork(() -> selectionOperator.select(currentPop, tSize)));
                             }
                             scope.join();
-                            return tasks.stream()
-                                .map(t -> t.state() == StructuredTaskScope.Subtask.State.SUCCESS ? t.get() : population[tasks.indexOf(t)])
-                                .toArray(Chromosome[]::new);
+                            Chromosome[] nextPop = new Chromosome[currentPop.length];
+                            for (int i = 0; i < nextPop.length; i++) {
+                                var t = tasks.get(i);
+                                nextPop[i] = t.state() == StructuredTaskScope.Subtask.State.SUCCESS ? t.get() : currentPop[i];
+                            }
+                            return nextPop;
                         }
                     });
                 } catch (Exception e) { throw new RuntimeException(e); }
@@ -154,25 +174,11 @@ public class GeneticAlgorithm {
 
             Arrays.sort(population);
 
-            // Stagnation logic: increase neighborhood size if fitness plateaus
-            if (best != null && population[0].cost() < best.cost()) {
-                stagnationCount = 0;
-            } else {
-                stagnationCount++;
-            }
+            boolean neighborhoodIncreased = stagnationHandler.checkStagnation(
+                    population[0], best, calculator, targets.size());
 
-            boolean neighborhoodIncreased = false;
-            if (stagnationCount >= 50) {
-                int newSize = gaParameters.getNeighborhoodSize() + 5;
-                if (newSize < targets.size()) {
-                    gaParameters.setNeighborhoodSize(newSize);
-                    if (calculator instanceof TSPCostCalculator tsp) tsp.initNeighbors();
-                    stagnationCount = 0;
-                    neighborhoodIncreased = true;
-                }
-            }
-
-            elitism();
+            best = elitismHandler.applyElitism(population, best, gaParameters.isElitism());
+            
             long genDuration = (System.nanoTime() - genStartTime) / 1_000_000;
 
             if (PROGRESS_LISTENER.isBound()) {
@@ -183,21 +189,12 @@ public class GeneticAlgorithm {
         return best;
     }
 
-    private void elitism() {
-        if (best == null || population[0].cost() < best.cost()) {
-            // Reuse the existing Chromosome object reference
-            best = population[0];
-        } else if (gaParameters.isElitism()) {
-            // Replace the worst individual (last in sorted array) with the current best
-            population[population.length - 1] = best;
-        }
-    }
-
     private void initPopulation() {
         population = new Chromosome[gaParameters.getPopulationSize()];
         int n = targets.size();
         // Allocate off-heap segment for the entire population's genes
-        this.populationSegment = Arena.ofAuto().allocate((long) population.length * n * ValueLayout.JAVA_INT.byteSize());
+        this.populationSegment = Arena.ofAuto().allocate(
+                (long) population.length * n * ValueLayout.JAVA_INT.byteSize(), 64);
 
         for (int i = 0; i < population.length; i++) {
             int[] genes = chromosomeFactory.createRandomGenes(n);

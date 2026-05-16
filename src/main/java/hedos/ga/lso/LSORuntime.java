@@ -23,10 +23,20 @@ public class LSORuntime {
     }
 
     public int getTourSize() {
+        if (!TOUR_SIZE.isBound()) {
+            throw new IllegalStateException("Tour Size context not bound.");
+        }
         return TOUR_SIZE.get();
     }
 
     public CostCalculator getCalculator() {
+        if (!CALCULATOR.isBound()) {
+            throw new IllegalStateException("Cost Calculator context not bound.");
+        }
         return CALCULATOR.get();
+    }
+
+    public Duration getEvaluationTimeout() {
+        return EVALUATION_TIMEOUT.isBound() ? EVALUATION_TIMEOUT.get() : Duration.ofMillis(5000);
     }
 }
