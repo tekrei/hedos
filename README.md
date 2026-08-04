@@ -76,10 +76,15 @@ The project includes helper scripts for a streamlined setup:
    ./run.sh
    ```
 
-Alternatively, use Maven directly:
-```bash
-mvn clean compile exec:exec
-```
+  Alternatively, use Maven directly:
+  ```bash
+  mvn clean compile exec:exec
+  ```
+
+3. **Bump dependencies**
+   ```bash
+   mvn versions:use-latest-versions
+   ```
 
 ## Usage
 

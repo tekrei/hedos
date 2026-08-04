@@ -17,6 +17,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
         <xj3d.natives>${project.build.directory}/natives</xj3d.natives>
+        <jogl.version>2.3.2</jogl.version>
     </properties>
     <repositories>
         <repository>
@@ -32,47 +33,47 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.13</version>
+            <version>2.0.18</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>2.0.13</version>
+            <version>2.0.18</version>
         </dependency>
         <dependency>
             <groupId>org.jogamp.jogl</groupId>
             <artifactId>jogl-all-main</artifactId>
-            <version>2.3.2</version>
+            <version>${jogl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jogamp.joal</groupId>
             <artifactId>joal</artifactId>
-            <version>2.3.2</version>
+            <version>${jogl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jogamp.gluegen</groupId>
             <artifactId>gluegen-rt</artifactId>
-            <version>2.3.2</version>
+            <version>${jogl.version}</version>
         </dependency>
         <!-- Native JOGL/Gluegen dependencies for Linux x86_64 -->
         <dependency>
             <groupId>org.jogamp.jogl</groupId>
             <artifactId>jogl-all</artifactId>
-            <version>2.3.2</version>
+            <version>${jogl.version}</version>
             <classifier>natives-linux-amd64</classifier>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.jogamp.joal</groupId>
             <artifactId>joal</artifactId>
-            <version>2.3.2</version>
+            <version>${jogl.version}</version>
             <classifier>natives-linux-amd64</classifier>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.jogamp.gluegen</groupId>
             <artifactId>gluegen-rt</artifactId>
-            <version>2.3.2</version>
+            <version>${jogl.version}</version>
             <classifier>natives-linux-amd64</classifier>
             <scope>runtime</scope>
         </dependency>
@@ -114,7 +115,7 @@
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
-            <version>3.4.1</version>
+            <version>3.7.2</version>
         </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>
@@ -129,22 +130,22 @@
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-swing</artifactId>
-            <version>12.3.1</version>
+            <version>12.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-fontawesome5-pack</artifactId>
-            <version>12.3.1</version>
+            <version>12.4.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>2.17.0</version>
+            <version>2.22.1</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.17.0</version>
+            <version>2.22.1</version>
         </dependency>
         <!-- JMH Benchmarking -->
         <dependency>
@@ -172,6 +173,23 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.16.2</version>
+                <configuration>
+                    <generateBackupPoms>false</generateBackupPoms>
+                    <allowMajorUpdates>false</allowMajorUpdates>
+                    <excludes>
+                        <exclude>org.jogamp.jogl:*</exclude>
+                        <exclude>org.jogamp.gluegen:*</exclude>
+                        <exclude>org.jogamp.joal:*</exclude>
+                        <exclude>org.j3d:*</exclude>
+                        <exclude>org.xj3d:*</exclude>
+                    </excludes>
+                    <excludeProperties>jogl.version</excludeProperties>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
@@ -192,23 +210,19 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.6.1</version> <!-- Use a recent version -->
+                <version>3.6.1</version>
                 <executions>
                     <execution>
                         <id>unpack-natives</id>
-                        <!-- This phase ensures natives are unpacked before compilation/packaging -->
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>unpack-dependencies</goal>
                         </goals>
                         <configuration>
-                            <!-- Output directory for the unpacked native libraries -->
                             <outputDirectory>${project.build.directory}/natives</outputDirectory>
-                            <!-- Include only the native JARs for unpacking -->
                             <includeGroupIds>org.jogamp.jogl,org.jogamp.gluegen,org.jogamp.joal,org.xj3d</includeGroupIds>
                             <includeArtifactIds>jogl-all,gluegen-rt,joal,odejava</includeArtifactIds>
                             <includeClassifiers>natives-linux-amd64</includeClassifiers>
-                            <!-- Ensure existing files are not overwritten unnecessarily -->
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>true</overWriteSnapshots>
                         </configuration>
@@ -220,19 +234,8 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>hedos.HedosFrame</mainClass>
-                    <!-- Use exec goal to run in a separate process for better native support -->
                     <executable>java</executable>
-                    <arguments>
-                        <argument>--add-exports=java.desktop/sun.awt=ALL-UNNAMED</argument>
-                        <argument>--add-opens=java.desktop/sun.awt=ALL-UNNAMED</argument>
-                        <argument>--add-modules=jdk.incubator.vector</argument>
-                        <argument>--enable-preview</argument>
-                        <argument>-Djava.library.path=${xj3d.natives}</argument>
-                        <argument>-classpath</argument>
-                        <classpath/>
-                        <argument>hedos.HedosFrame</argument>
-                    </arguments>
+                    <commandlineArgs>--enable-native-access=ALL-UNNAMED --add-exports=java.desktop/sun.awt=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED --add-modules=jdk.incubator.vector --enable-preview -Djava.library.path=${xj3d.natives} -classpath %classpath:target/classes hedos.HedosFrame</commandlineArgs>
                 </configuration>
             </plugin>
         </plugins>
